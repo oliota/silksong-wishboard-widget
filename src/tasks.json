@@ -1,0 +1,12 @@
+{
+    "tasks":  [
+                  {
+                      "id":  "welcome",
+                      "title":  "Welcome",
+                      "description":  "Welcome to Desktop Widget. Drag the icon inside the permitted area. Use Edit to reshape the area, manage backgrounds and icon grid settings. Use + to create tasks, click an icon to edit its title, description or icon, and use the opacity slider whenever you need the widget to stay out of the way.",
+                      "icon":  "icon-01",
+                      "x":  300,
+                      "y":  336
+                  }
+              ]
+}

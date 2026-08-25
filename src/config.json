@@ -1,0 +1,79 @@
+{
+    "refreshSeconds":  60,
+    "widget":  {
+                   "width":  560,
+                   "height":  603.2,
+                   "left":  1488,
+                   "top":  354.4,
+                   "topmost":  true,
+                   "designWidth":  520,
+                   "designHeight":  560,
+                   "opacity":  1,
+                   "displayAnchor":  {
+                                         "deviceName":  "\\\\.\\DISPLAY2",
+                                         "workLeft":  0,
+                                         "workTop":  0,
+                                         "workWidth":  2560,
+                                         "workHeight":  1380,
+                                         "relativeX":  0.744,
+                                         "relativeY":  0.4562
+                                     }
+               },
+    "background":  {
+                       "file":  "backgrounds/default.png",
+                       "opacity":  0.82,
+                       "stretch":  "Uniform",
+                       "scale":  1,
+                       "offsetX":  0,
+                       "offsetY":  0
+                   },
+    "buttons":  {
+                    "closeX":  486,
+                    "closeY":  12,
+                    "minimizeX":  446,
+                    "minimizeY":  12,
+                    "addOffsetY":  34,
+                    "editX":  332,
+                    "editY":  8,
+                    "undoX":  12,
+                    "undoY":  52,
+                    "clearX":  12,
+                    "clearY":  92,
+                    "borderToggleX":  12,
+                    "borderToggleY":  132,
+                    "cancelEditX":  12,
+                    "cancelEditY":  192,
+                    "backgroundX":  82,
+                    "backgroundY":  192,
+                    "addX":  197.1,
+                    "addY":  81.6,
+                    "opacityX":  178,
+                    "opacityY":  8,
+                    "addSize":  84,
+                    "toolbarBottom":  12.0
+                },
+    "resize":  {
+                   "minWidth":  320,
+                   "maxWidth":  1100
+               },
+    "drag":  {
+                 "opacity":  0.55
+             },
+    "icons":  {
+                  "columns":  3
+              },
+    "detail":  {
+                   "width":  520,
+                   "height":  430
+               },
+    "detailWindow":  {
+                         "width":  620,
+                         "height":  360,
+                         "minWidth":  460,
+                         "minHeight":  280,
+                         "aspectRatio":  1.7222
+                     },
+    "tasks":  {
+                  "collisionMargin":  6.0
+              }
+}

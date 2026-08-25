@@ -1,0 +1,10 @@
+{
+    "backgrounds":  [
+                        {
+                            "id":  "default",
+                            "name":  "default",
+                            "file":  "backgrounds/default.png",
+                            "protected":  true
+                        }
+                    ]
+}

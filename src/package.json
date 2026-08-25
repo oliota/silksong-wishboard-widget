@@ -1,0 +1,21 @@
+{
+  "name": "desktop-widget",
+  "private": true,
+  "scripts": {
+    "----": "echo Runtime",
+    "run": "wscript.exe start-widget.vbs",
+    "debug": "powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File widget.ps1",
+    "stop": "stop-widget.bat",
+    "-----": "echo Quality",
+    "test": "powershell.exe -NoProfile -Command \"Get-Content config.json | ConvertFrom-Json | Out-Null; Get-Content area.json | ConvertFrom-Json | Out-Null; Get-Content tasks.json | ConvertFrom-Json | Out-Null\"",
+    "lint": "powershell.exe -NoProfile -Command \"$null=[System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'widget.ps1'),[ref]$null,[ref]$null)\"",
+    "format": "powershell.exe -NoProfile -Command \"exit 0\"",
+    "build": "powershell.exe -NoProfile -Command \"Compress-Archive -Path background.png,config.json,area.json,tasks.json,widget.ps1,start-widget.vbs,start-widget.bat,start-debug.bat,stop-widget.bat,README.md,package.json -DestinationPath Desktop_Widget.zip -Force\"",
+    "------": "echo Discovery",
+    "help": "powershell.exe -NoProfile -Command \"Get-Content README.md\"",
+    "list": "powershell.exe -NoProfile -Command \"Get-ChildItem\"",
+    "status": "powershell.exe -NoProfile -Command \"Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*widget.ps1*' } | Select-Object ProcessId,Name\"",
+    "logs": "powershell.exe -NoProfile -Command \"Write-Output 'No application logs are generated.'\""
+  },
+  "version": "1.1.0"
+}

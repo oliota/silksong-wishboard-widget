@@ -1,0 +1,114 @@
+{
+  "icons": [
+    {
+      "id": "icon-01",
+      "name": "Icon 01",
+      "file": "icons/icon-01.png"
+    },
+    {
+      "id": "icon-02",
+      "name": "Icon 02",
+      "file": "icons/icon-02.png"
+    },
+    {
+      "id": "icon-03",
+      "name": "Icon 03",
+      "file": "icons/icon-03.png"
+    },
+    {
+      "id": "icon-04",
+      "name": "Icon 04",
+      "file": "icons/icon-04.png"
+    },
+    {
+      "id": "icon-05",
+      "name": "Icon 05",
+      "file": "icons/icon-05.png"
+    },
+    {
+      "id": "icon-06",
+      "name": "Icon 06",
+      "file": "icons/icon-06.png"
+    },
+    {
+      "id": "icon-07",
+      "name": "Icon 07",
+      "file": "icons/icon-07.png"
+    },
+    {
+      "id": "icon-08",
+      "name": "Icon 08",
+      "file": "icons/icon-08.png"
+    },
+    {
+      "id": "icon-09",
+      "name": "Icon 09",
+      "file": "icons/icon-09.png"
+    },
+    {
+      "id": "icon-10",
+      "name": "Icon 10",
+      "file": "icons/icon-10.png"
+    },
+    {
+      "id": "icon-11",
+      "name": "Icon 11",
+      "file": "icons/icon-11.png"
+    },
+    {
+      "id": "icon-12",
+      "name": "Icon 12",
+      "file": "icons/icon-12.png"
+    },
+    {
+      "id": "icon-13",
+      "name": "Icon 13",
+      "file": "icons/icon-13.png"
+    },
+    {
+      "id": "icon-14",
+      "name": "Icon 14",
+      "file": "icons/icon-14.png"
+    },
+    {
+      "id": "icon-15",
+      "name": "Icon 15",
+      "file": "icons/icon-15.png"
+    },
+    {
+      "id": "icon-16",
+      "name": "Icon 16",
+      "file": "icons/icon-16.png"
+    },
+    {
+      "id": "icon-17",
+      "name": "Icon 17",
+      "file": "icons/icon-17.png"
+    },
+    {
+      "id": "icon-18",
+      "name": "Icon 18",
+      "file": "icons/icon-18.png"
+    },
+    {
+      "id": "icon-19",
+      "name": "Icon 19",
+      "file": "icons/icon-19.png"
+    },
+    {
+      "id": "icon-20",
+      "name": "Icon 20",
+      "file": "icons/icon-20.png"
+    },
+    {
+      "id": "icon-21",
+      "name": "Icon 21",
+      "file": "icons/icon-21.png"
+    },
+    {
+      "id": "icon-22",
+      "name": "Icon 22",
+      "file": "icons/icon-22.png"
+    }
+  ]
+}
