@@ -199,7 +199,9 @@ Click a badge without dragging it to open the full ornamented detail window.
   <img src="docs/images/detail-view.png" alt="Full ornamented task detail beside the desktop widget" width="960">
 </p>
 
-The read view contains the original icon, title and description. Its upper-right controls provide Edit, Delete, Resize and Close actions.
+The read view contains the original icon, title and scrollable description. Its upper-right controls provide Edit, Delete and Close actions.
+
+Creation and task detail windows always open in the center of the primary Windows display. Their external ornaments use a black-to-transparent backdrop so the white artwork remains visible over both light and dark desktops.
 
 In Edit Mode you can change:
 
@@ -359,6 +361,15 @@ silksong-wishboard-widget/
 │       └── *.png
 └── src/
     ├── widget.ps1
+    ├── modules/
+    │   ├── ApplicationLifecycle.ps1
+    │   ├── BoardGeometry.ps1
+    │   ├── BoardProfiles.ps1
+    │   ├── BoardRendering.ps1
+    │   ├── TaskAnimation.ps1
+    │   ├── TaskDetails.ps1
+    │   ├── Tasks.ps1
+    │   └── WindowState.ps1
     ├── config.json
     ├── area.json
     ├── tasks.json
@@ -371,11 +382,24 @@ silksong-wishboard-widget/
     │   ├── BoneBotton/
     │   ├── BellHart/
     │   ├── SongClave/
+    │   ├── Dialogue_fleur_top_NPC0005.png
+    │   ├── bottom_fleur0008.png
+    │   ├── dialogue_fleur_bottom0007.png
+    │   ├── Controller_Dialogue_0001_bot.png
+    │   ├── dialogue_corner_top_left.png
+    │   ├── dialogue_corner_bottom_right.png
+    │   ├── dialogue_cancel_top.png
+    │   ├── dialogue_cancel_ring.png
+    │   ├── task_sparkle.png
     │   └── badges/
     ├── package.json
     ├── start-debug.bat
     └── stop-widget.bat
 ```
+
+`widget.ps1` is the composition root. Feature logic is separated into modules for application lifecycle, task management, profiles, polygon geometry, rendering, details, edit settings and window state.
+
+Only one widget instance can run in the current Windows session. A second launch exits immediately. The instance lock, tray resources and timers are released when the application closes, including when initialization fails.
 
 ## Persistent Data
 
@@ -387,6 +411,14 @@ silksong-wishboard-widget/
 | `src/backgrounds/*/profile.json` | Profile assets and default layout. |
 | `src/icons.json` | Available icons. |
 | `src/icons/colors.json` | Saturated badge colors associated with icons. |
+
+The badge placement duration is configured in `src/config.json`:
+
+```json
+"animation": {
+  "placementDurationSeconds": 3
+}
+```
 
 ## Local and Deployed Use
 

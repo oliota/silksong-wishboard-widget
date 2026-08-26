@@ -1,23 +1,26 @@
 {
     "refreshSeconds":  60,
-    "profile":  "bonebotton",
+    "animation":  {
+                      "placementDurationSeconds":  3
+                  },
+    "profile":  "songclave",
     "widget":  {
                    "width":  477,
                    "height":  513,
-                   "left":  1410,
-                   "top":  483,
+                   "left":  1472,
+                   "top":  499,
                    "topmost":  true,
                    "designWidth":  520,
                    "designHeight":  560,
-                   "opacity":  1,
+                   "opacity":  0.79,
                    "displayAnchor":  {
                                          "deviceName":  "\\\\.\\DISPLAY1",
                                          "workLeft":  0,
                                          "workTop":  0,
                                          "workWidth":  1920,
                                          "workHeight":  1032,
-                                         "relativeX":  0.9771,
-                                         "relativeY":  0.9306
+                                         "relativeX":  1,
+                                         "relativeY":  0.9615
                                      }
                },
     "background":  {
@@ -46,11 +49,11 @@
                     "cancelEditY":  192,
                     "backgroundX":  82,
                     "backgroundY":  192,
-                    "addX":  56,
-                    "addY":  304.1,
+                    "addX":  225.3,
+                    "addY":  433,
                     "opacityX":  178,
                     "opacityY":  8,
-                    "addSize":  84,
+                    "addSize":  63,
                     "toolbarBottom":  12.0
                 },
     "resize":  {

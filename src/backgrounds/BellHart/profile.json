@@ -90,7 +90,7 @@
                   "addSize":  82.3,
                   "area":  {
                                "type":  "polygon",
-                               "borderVisible":  true,
+                               "borderVisible":  false,
                                "borderThickness":  2,
                                "borderColor":  "#D8FFFFFF",
                                "fillColor":  "#1600A8FF",

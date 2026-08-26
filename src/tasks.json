@@ -1,17 +1,17 @@
 {
-  "tasks": [
-    {
-      "id": "task-welcome",
-      "title": "Welcome to Your Wish Board",
-      "description": "Create tasks with +, choose an icon, drag badges around the board, click to view or edit, and right-click to delete. Use Edit to customize the board area, profiles, layout, and appearance.",
-      "icon": "icon-17",
-      "badge": "backgrounds/badges/bonebottom_quest_board_badges_grey_0000_6.png",
-      "label": "backgrounds/badges/label/bonebottom_quest_board_badges_text_0000_Layer-7.png",
-      "badgeColor": "#FFED9C18",
-      "isNew": true,
-      "createdAt": "2026-08-26T09:00:00+01:00",
-      "x": 261.0,
-      "y": 217.6
-    }
-  ]
+    "tasks":  [
+                  {
+                      "id":  "task-bc7770b86067424999c998aa959c72d8",
+                      "title":  "aaa",
+                      "description":  "aaaaaaaaaa",
+                      "icon":  "icon-15",
+                      "isNew":  true,
+                      "createdAt":  "2026-08-26T14:53:26.6569743+01:00",
+                      "badge":  "backgrounds/badges/bonebottom_quest_board_badges_grey_0001_5.png",
+                      "label":  "backgrounds/badges/label/dock_b__0017_text_small1.png",
+                      "badgeColor":  "#FFED8026",
+                      "x":  262.2,
+                      "y":  286.1
+                  }
+              ]
 }
