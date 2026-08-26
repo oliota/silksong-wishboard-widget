@@ -134,11 +134,13 @@ function Ensure-WidgetOnVisibleDisplay([bool]$displayChanged = $false) {
 }
 
 function Save-Config {
+    Write-WidgetLog 'SAVE_CONFIG' ("Writing config file: {0}" -f $configPath)
     $tempPath = "$configPath.tmp"
     $json = $script:config | ConvertTo-Json -Depth 20
     [System.IO.File]::WriteAllText($tempPath, $json, [System.Text.UTF8Encoding]::new($false))
     Move-Item -LiteralPath $tempPath -Destination $configPath -Force
     $script:configStamp = (Get-Item $configPath).LastWriteTimeUtc
+    Write-WidgetLog 'SAVE_CONFIG' 'Config file saved.'
 }
 
 

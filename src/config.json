@@ -3,16 +3,16 @@
     "animation":  {
                       "placementDurationSeconds":  3
                   },
-    "profile":  "songclave",
+    "profile":  "bonebotton",
     "widget":  {
-                   "width":  477,
-                   "height":  513,
-                   "left":  1472,
-                   "top":  499,
+                   "width":  527,
+                   "height":  568,
+                   "left":  1454,
+                   "top":  428,
                    "topmost":  true,
                    "designWidth":  520,
                    "designHeight":  560,
-                   "opacity":  0.79,
+                   "opacity":  0.7,
                    "displayAnchor":  {
                                          "deviceName":  "\\\\.\\DISPLAY1",
                                          "workLeft":  0,
@@ -20,7 +20,7 @@
                                          "workWidth":  1920,
                                          "workHeight":  1032,
                                          "relativeX":  1,
-                                         "relativeY":  0.9615
+                                         "relativeY":  0.9224
                                      }
                },
     "background":  {
@@ -49,11 +49,11 @@
                     "cancelEditY":  192,
                     "backgroundX":  82,
                     "backgroundY":  192,
-                    "addX":  225.3,
-                    "addY":  433,
+                    "addX":  56,
+                    "addY":  304.1,
                     "opacityX":  178,
                     "opacityY":  8,
-                    "addSize":  63,
+                    "addSize":  84,
                     "toolbarBottom":  12.0
                 },
     "resize":  {

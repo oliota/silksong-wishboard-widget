@@ -1,43 +1,43 @@
 {
     "tasks":  [
                   {
-                      "id":  "task-bc7770b86067424999c998aa959c72d8",
-                      "title":  "aaa",
-                      "description":  "aaaaaaaaaa",
-                      "icon":  "icon-15",
+                      "id":  "task-c2242e7448fd42f79bbc0c94b0081b6c",
+                      "title":  "aa",
+                      "description":  "aaaaaaaa",
+                      "icon":  "icon-04",
                       "isNew":  true,
-                      "createdAt":  "2026-08-26T14:53:26.6569743+01:00",
-                      "badge":  "backgrounds/badges/bonebottom_quest_board_badges_grey_0001_5.png",
-                      "label":  "backgrounds/badges/label/dock_b__0017_text_small1.png",
-                      "badgeColor":  "#FFED8026",
-                      "x":  262.2,
-                      "y":  286.1
+                      "createdAt":  "2026-08-26T20:34:27.9810760+01:00",
+                      "badge":  "backgrounds/badges/bonebottom_quest_board_badges_grey_0004_2.png",
+                      "label":  "backgrounds/badges/label/bonebottom_quest_board_badges_text_0003_Layer-10.png",
+                      "badgeColor":  "#FFD3ED26",
+                      "x":  234.9,
+                      "y":  211.2
                   },
                   {
-                      "id":  "task-4e4cd0c1f0db456890eb0282a32ba48d",
-                      "title":  "aaaa",
-                      "description":  "aaaaaa",
-                      "icon":  "icon-07",
+                      "id":  "task-fb2797eed36d4ead8ba804a16e1fcc9a",
+                      "title":  "cc",
+                      "description":  "cccccc",
+                      "icon":  "icon-10",
                       "isNew":  true,
-                      "createdAt":  "2026-08-26T15:26:25.7221605+01:00",
+                      "createdAt":  "2026-08-26T20:34:39.2470415+01:00",
+                      "badge":  "backgrounds/badges/bonebottom_quest_board_badges_generic_0001_3.png",
+                      "label":  "backgrounds/badges/label/bonebottom_quest_board_badges_text_0003_Layer-10.png",
+                      "badgeColor":  "#FFED9126",
+                      "x":  286.9,
+                      "y":  211.2
+                  },
+                  {
+                      "id":  "task-c419ca0d518e494ebbfb9a890a702a99",
+                      "title":  "teste",
+                      "description":  "teste",
+                      "icon":  "icon-08",
+                      "isNew":  true,
+                      "createdAt":  "2026-08-26T20:42:23.1020561+01:00",
                       "badge":  "backgrounds/badges/bonebottom_quest_board_badges_generic_0003_1.png",
-                      "label":  "backgrounds/badges/label/bonebottom_quest_board_badges_text_0001_Layer-8.png",
-                      "badgeColor":  "#FF267EED",
-                      "x":  314.2,
-                      "y":  286.1
-                  },
-                  {
-                      "id":  "task-c19b38a0d8a741fa8bfa8421805b34ca",
-                      "title":  "ff",
-                      "description":  "ffffff",
-                      "icon":  "icon-17",
-                      "isNew":  true,
-                      "createdAt":  "2026-08-26T15:32:09.8992723+01:00",
-                      "badge":  "backgrounds/badges/bonebottom_quest_board_badges_grey_0002_4.png",
-                      "label":  "backgrounds/badges/label/bonebottom_quest_board_badges_text_0001_Layer-8.png",
-                      "badgeColor":  "#FFED9C18",
-                      "x":  287,
-                      "y":  331.8
+                      "label":  "backgrounds/badges/label/bonebottom_quest_board_badges_text_0003_Layer-10.png",
+                      "badgeColor":  "#FF808080",
+                      "x":  217.4,
+                      "y":  260.2
                   }
               ]
 }

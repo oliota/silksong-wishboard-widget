@@ -4,11 +4,14 @@ $projectRoot = Split-Path -Parent $base
 
 . (Join-Path $base 'modules/ApplicationLifecycle.ps1')
 
+Initialize-WidgetLog
+
 if (-not (Enter-ApplicationInstance)) {
     exit 0
 }
 
 try {
+Write-WidgetLog 'START' 'Loading WPF assemblies and application modules.'
 Get-ChildItem -LiteralPath $projectRoot -Recurse -File -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
 
 Add-Type -AssemblyName PresentationFramework
@@ -72,6 +75,7 @@ $script:tasks = @(Read-Tasks)
 $script:configStamp = (Get-Item $configPath).LastWriteTimeUtc
 $script:areaStamp = (Get-Item $areaPath).LastWriteTimeUtc
 $script:tasksStamp = (Get-Item $tasksPath).LastWriteTimeUtc
+Write-WidgetLog 'LOAD' ("Loaded configuration, area and {0} tasks." -f $script:tasks.Count)
 Initialize-LegacyTaskBadges
 $script:positionInitialized = $false
 $script:userHidden = $false
@@ -1233,8 +1237,13 @@ $detailClose.Add_Click({
 
 $addClose.Add_Click({ Close-AddTaskPanel })
 
+function Invoke-EditModeSave {
+    $script:editButton.RaiseEvent([System.Windows.RoutedEventArgs]::new([System.Windows.Controls.Button]::ClickEvent))
+}
+
 $editButton.Add_Click({
     if (-not $script:editMode) {
+    Write-WidgetLog 'EDIT' 'Opening edit mode.'
         $script:editSnapshot = Copy-JsonObject $script:area
         $script:editWorkingArea = Copy-JsonObject $script:area
         $script:editProfileId = [string]$script:config.profile
@@ -1276,6 +1285,7 @@ $editButton.Add_Click({
         Render-Area
         Render-EditorNodes
         Show-EditSettingsWindow
+        Write-WidgetLog 'EDIT' 'Edit mode opened.'
         return
     }
 
@@ -1285,49 +1295,70 @@ $editButton.Add_Click({
         $script:draggingEditorIndex = -1
     }
 
-    $script:area = Copy-JsonObject $script:editWorkingArea
-    Save-Area $script:area
-    $script:config.background.file = [string]$script:editBackgroundFile
-    $script:config.background.scale = [Math]::Round([double]$script:editBackgroundScale, 3)
-    $script:config.background.offsetX = [Math]::Round([double]$script:editBackgroundOffsetX, 1)
-    $script:config.background.offsetY = [Math]::Round([double]$script:editBackgroundOffsetY, 1)
-    $script:config.buttons.addX = $script:editAddX
-    $script:config.buttons.addY = $script:editAddY
-    $script:config.profile = [string]$script:editProfileId
-    $script:config.icons.columns = [int]$script:editGridColumns
-    Save-Config
-    Save-ActiveProfileState
-    Close-EditSettingsWindow
-
-    $script:editMode = $false
-    $script:editSnapshot = $null
-    $script:editWorkingArea = $null
-    $script:editUndoStack.Clear()
-
-    Set-EditButtonVisual $false
-    $script:undoButton.Visibility = 'Collapsed'
-    $script:clearButton.Visibility = 'Collapsed'
-    $script:borderToggle.Visibility = 'Collapsed'
-    $script:startupToggle.Visibility = 'Collapsed'
-    $script:backgroundPanel.Visibility = 'Collapsed'
-    $script:gridPanel.Visibility = 'Collapsed'
-    $script:taskLayer.IsHitTestVisible = $true
-    $script:editorLayer.IsHitTestVisible = $false
-    $script:editButton.Visibility = 'Visible'
-
-    Apply-Config
-
     try {
-        Normalize-Tasks-ToArea
+        Write-WidgetLog 'EDIT_SAVE' 'Starting edit mode save.'
+        if ($null -eq $script:editWorkingArea) { throw 'Edit area is not available.' }
+
+        $script:area = Copy-JsonObject $script:editWorkingArea
+        Save-Area $script:area
+        $script:config.background.file = [string]$script:editBackgroundFile
+        $script:config.background.scale = [Math]::Round([double]$script:editBackgroundScale, 3)
+        $script:config.background.offsetX = [Math]::Round([double]$script:editBackgroundOffsetX, 1)
+        $script:config.background.offsetY = [Math]::Round([double]$script:editBackgroundOffsetY, 1)
+        $script:config.buttons.addX = $script:editAddX
+        $script:config.buttons.addY = $script:editAddY
+        $script:config.profile = [string]$script:editProfileId
+        $script:config.icons.columns = [int]$script:editGridColumns
+        Save-Config
+        Write-WidgetLog 'EDIT_SAVE' 'Configuration and area saved.'
+        Save-ActiveProfileState
+        Write-WidgetLog 'EDIT_SAVE' 'Profile state saved.'
+        Close-EditSettingsWindow
+        Write-WidgetLog 'EDIT_SAVE' 'Edit settings window closed.'
     }
     catch {
-        Render-Tasks
+        Write-WidgetLog 'ERROR' ("Edit save failed: {0}" -f $_.Exception.ToString())
+        [System.Windows.MessageBox]::Show(
+            "Could not save edit mode: $($_.Exception.Message)",
+            'Wish Board',
+            [System.Windows.MessageBoxButton]::OK,
+            [System.Windows.MessageBoxImage]::Error
+        ) | Out-Null
+        return
     }
 
-    Render-Background
-    Render-Area
-    Render-EditorNodes
-    Render-Tasks
+    try {
+        Write-WidgetLog 'EDIT_SAVE' 'Applying saved edit state and rendering.'
+        $script:editMode = $false
+        $script:editSnapshot = $null
+        $script:editWorkingArea = $null
+        if ($null -ne $script:editUndoStack) { $script:editUndoStack.Clear() }
+
+        Set-EditButtonVisual $false
+        $script:undoButton.Visibility = 'Collapsed'
+        $script:clearButton.Visibility = 'Collapsed'
+        $script:borderToggle.Visibility = 'Collapsed'
+        $script:startupToggle.Visibility = 'Collapsed'
+        $script:backgroundPanel.Visibility = 'Collapsed'
+        $script:gridPanel.Visibility = 'Collapsed'
+        $script:taskLayer.IsHitTestVisible = $true
+        $script:editorLayer.IsHitTestVisible = $false
+        $script:editButton.Visibility = 'Visible'
+
+        Apply-Config
+        Normalize-Tasks-ToArea
+        Render-Background
+        Render-Area
+        Render-EditorNodes
+        Render-Tasks
+        Write-WidgetLog 'EDIT_SAVE' 'Edit mode save completed.'
+    }
+    catch {
+        $errorPath = Join-Path $base 'widget-error.log'
+        Add-Content -LiteralPath $errorPath -Value ("{0} Save edit: {1}" -f (Get-Date), $_.Exception.ToString())
+        Write-WidgetLog 'ERROR' ("Edit finalization failed: {0}" -f $_.Exception.ToString())
+        return
+    }
 })
 
 $undoButton.Add_Click({
@@ -1776,12 +1807,23 @@ $desktopTimer.Add_Tick({
 $script:desktopTimer = $desktopTimer
 $desktopTimer.Start()
 
+$window.Dispatcher.Add_UnhandledException({
+    param($sender, $eventArgs)
+
+    $eventArgs.Handled = $true
+    $errorPath = Join-Path $base 'widget-error.log'
+    Add-Content -LiteralPath $errorPath -Value ("{0} Dispatcher: {1}" -f (Get-Date), $eventArgs.Exception.ToString())
+    Write-WidgetLog 'ERROR' ("Dispatcher exception: {0}" -f $eventArgs.Exception.ToString())
+})
+
 $window.Show()
 Ensure-WidgetOnVisibleDisplay $false | Out-Null
 $window.Activate() | Out-Null
+Write-WidgetLog 'READY' 'Widget window shown; entering dispatcher loop.'
 [System.Windows.Threading.Dispatcher]::Run()
 }
 finally {
+    Write-WidgetLog 'STOP' 'Widget process stopping.'
     $script:exiting = $true
     Dispose-ApplicationResources
     Exit-ApplicationInstance

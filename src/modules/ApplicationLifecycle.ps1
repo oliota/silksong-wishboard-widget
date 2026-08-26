@@ -1,3 +1,19 @@
+function Initialize-WidgetLog {
+    $script:widgetLogPath = Join-Path $base 'widget.log'
+    [System.IO.File]::WriteAllText($script:widgetLogPath, '', [System.Text.UTF8Encoding]::new($false))
+    Write-WidgetLog 'START' 'Widget process starting.'
+}
+
+function Write-WidgetLog([string]$event, [string]$message) {
+    if ([string]::IsNullOrWhiteSpace([string]$script:widgetLogPath)) { return }
+    $line = '{0:yyyy-MM-dd HH:mm:ss.fff} [{1}] {2}' -f (Get-Date), $event, $message
+    try {
+        Add-Content -LiteralPath $script:widgetLogPath -Value $line -ErrorAction SilentlyContinue
+    }
+    catch {
+    }
+}
+
 function Enter-ApplicationInstance {
     $name = 'Local\SilksongWishBoardWidget'
     $script:instanceMutex = [System.Threading.Mutex]::new($false, $name)
@@ -10,9 +26,11 @@ function Enter-ApplicationInstance {
     }
 
     if ($script:ownsInstanceMutex) {
+        Write-WidgetLog 'INSTANCE' 'Application instance acquired.'
         return $true
     }
 
+    Write-WidgetLog 'INSTANCE' 'Another application instance is already running.'
     $script:instanceMutex.Dispose()
     $script:instanceMutex = $null
     return $false

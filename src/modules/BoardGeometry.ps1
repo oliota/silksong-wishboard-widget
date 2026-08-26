@@ -98,6 +98,7 @@ function Cancel-EditSession {
 
     $script:editSnapshot = $null
     Set-EditButtonVisual $false
+    $script:editButton.Visibility = 'Visible'
     $script:undoButton.Visibility = 'Collapsed'
     $script:clearButton.Visibility = 'Collapsed'
     $script:borderToggle.Visibility = 'Collapsed'
@@ -475,11 +476,13 @@ function Save-Area {
     param($AreaToSave = $null)
 
     $target = if ($null -ne $AreaToSave) { $AreaToSave } else { $script:area }
+    Write-WidgetLog 'SAVE_AREA' ("Writing area file: {0}" -f $areaPath)
     $tempPath = "$areaPath.tmp"
     $json = $target | ConvertTo-Json -Depth 20
     [System.IO.File]::WriteAllText($tempPath, $json, [System.Text.UTF8Encoding]::new($false))
     Move-Item -LiteralPath $tempPath -Destination $areaPath -Force
     $script:areaStamp = (Get-Item $areaPath).LastWriteTimeUtc
+    Write-WidgetLog 'SAVE_AREA' 'Area file saved.'
 }
 
 function Distance-ToSegment([double]$px, [double]$py, [double]$ax, [double]$ay, [double]$bx, [double]$by) {

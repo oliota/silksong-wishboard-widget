@@ -85,9 +85,9 @@
                               }
                  },
     "state":  {
-                  "addX":  222.9,
-                  "addY":  353.7,
-                  "addSize":  82.3,
+                  "addX":  218,
+                  "addY":  379.7,
+                  "addSize":  84,
                   "area":  {
                                "type":  "polygon",
                                "borderVisible":  false,

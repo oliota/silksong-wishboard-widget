@@ -60,6 +60,7 @@ function Get-ActiveProfile {
 }
 
 function Save-ProfileRegistry($registry) {
+    Write-WidgetLog 'SAVE_PROFILE' 'Writing profile registry.'
     foreach ($profile in @($registry.profiles)) {
         $path = Join-Path $base ([string]$profile.sourceFile)
         $profile.PSObject.Properties.Remove('sourceFile')
@@ -67,6 +68,7 @@ function Save-ProfileRegistry($registry) {
         [System.IO.File]::WriteAllText($tempPath, ($profile | ConvertTo-Json -Depth 30), [System.Text.UTF8Encoding]::new($false))
         Move-Item -LiteralPath $tempPath -Destination $path -Force
     }
+    Write-WidgetLog 'SAVE_PROFILE' 'Profile registry saved.'
 }
 
 function Set-Profile([string]$id, [bool]$editing) {
