@@ -5,6 +5,24 @@
                             "name":  "default",
                             "file":  "backgrounds/default.png",
                             "protected":  true
+                        },
+                        {
+                            "id":  "bg-5279f95be529452c9dfe60505c1c2dc1",
+                            "name":  "bonebottom_quest_board",
+                            "file":  "backgrounds/bg-5279f95be529452c9dfe60505c1c2dc1.png",
+                            "protected":  false
+                        },
+                        {
+                            "id":  "bg-a14999abb19d41d1bafbb5576e68413a",
+                            "name":  "belltown_quest_board_larger",
+                            "file":  "backgrounds/bg-a14999abb19d41d1bafbb5576e68413a.png",
+                            "protected":  false
+                        },
+                        {
+                            "id":  "bg-267aee53ce044a2caeda72f59ada290b",
+                            "name":  "songclave",
+                            "file":  "backgrounds/bg-267aee53ce044a2caeda72f59ada290b.png",
+                            "protected":  false
                         }
                     ]
 }

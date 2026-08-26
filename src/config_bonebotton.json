@@ -1,11 +1,10 @@
 {
     "refreshSeconds":  60,
-    "profile":  "bonebotton",
     "widget":  {
-                   "width":  477,
-                   "height":  513,
-                   "left":  1410,
-                   "top":  483,
+                   "width":  488,
+                   "height":  526,
+                   "left":  1450,
+                   "top":  488,
                    "topmost":  true,
                    "designWidth":  520,
                    "designHeight":  560,
@@ -16,8 +15,8 @@
                                          "workTop":  0,
                                          "workWidth":  1920,
                                          "workHeight":  1032,
-                                         "relativeX":  0.9771,
-                                         "relativeY":  0.9306
+                                         "relativeX":  1,
+                                         "relativeY":  0.9644
                                      }
                },
     "background":  {

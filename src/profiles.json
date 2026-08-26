@@ -1,0 +1,7 @@
+{
+  "profiles": [
+    { "id": "bonebotton", "file": "backgrounds/BoneBotton/profile.json" },
+    { "id": "bellhart", "file": "backgrounds/BellHart/profile.json" },
+    { "id": "songclave", "file": "backgrounds/SongClave/profile.json" }
+  ]
+}

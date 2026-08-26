@@ -1,4 +1,7 @@
 $ErrorActionPreference = 'Stop'
+$base = Split-Path -Parent $MyInvocation.MyCommand.Path
+$projectRoot = Split-Path -Parent $base
+Get-ChildItem -LiteralPath $projectRoot -Recurse -File -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
@@ -6,14 +9,15 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$base = Split-Path -Parent $MyInvocation.MyCommand.Path
 $configPath = Join-Path $base 'config.json'
 $areaPath = Join-Path $base 'area.json'
 $defaultAreaPath = Join-Path $base 'default-area.json'
 $tasksPath = Join-Path $base 'tasks.json'
 $backgroundsPath = Join-Path $base 'backgrounds.json'
 $backgroundsDir = Join-Path $base 'backgrounds'
+$profilesPath = Join-Path $base 'profiles.json'
 $iconsPath = Join-Path $base 'icons.json'
+$iconColorsPath = Join-Path $base 'icons/colors.json'
 $script:editMode = $false
 $script:draggingEditorNode = $null
 $script:draggingEditorIndex = -1
@@ -38,6 +42,7 @@ $script:editSnapshotGridColumns = 3
 $script:addSelectedIcon = 'icon-01'
 $script:detailSelectedIcon = 'icon-01'
 $script:selectedTaskId = $null
+$script:activeProfile = $null
 
 
 $script:pendingDeletedBackgroundIds = New-Object System.Collections.Generic.HashSet[string]
@@ -72,6 +77,135 @@ function Read-IconCatalog {
 function Get-IconEntry([string]$id) {
     $catalog = Read-IconCatalog
     @($catalog.icons | Where-Object { [string]$_.id -eq $id }) | Select-Object -First 1
+}
+
+function Get-RelativeAssetPath([string]$path) {
+    ([System.IO.Path]::GetFullPath($path).Substring([System.IO.Path]::GetFullPath($base).Length).TrimStart([char[]]@('\', '/')) -replace '\\', '/')
+}
+
+function Get-BadgeAssets([bool]$labels = $false) {
+    if (-not (Test-Path $backgroundsDir)) { return @() }
+    @(
+        Get-ChildItem -LiteralPath $backgroundsDir -Recurse -File -Filter '*.png' |
+            Where-Object {
+                $relative = Get-RelativeAssetPath $_.FullName
+                $isLabel = $relative -match '(?i)/badges/label/'
+                if ($labels) { $isLabel } else { $relative -match '(?i)/badges/' -and -not $isLabel }
+            } |
+            Sort-Object FullName |
+            ForEach-Object { Get-RelativeAssetPath $_.FullName }
+    )
+}
+
+function Get-DominantIconColor([string]$iconId) {
+    $entry = Get-IconEntry $iconId
+    if ($null -eq $entry) { return '#FF8B4A58' }
+    if (Test-Path $iconColorsPath) {
+        $colorCatalog = Read-JsonFile $iconColorsPath
+        $iconFileName = [System.IO.Path]::GetFileName([string]$entry.file)
+        $configured = @($colorCatalog.icons | Where-Object { [string]$_.id -eq $iconId -or [string]$_.file -eq $iconFileName }) | Select-Object -First 1
+        if ($null -ne $configured -and [string]$configured.color -match '^#[0-9A-Fa-f]{6}$') {
+            return '#FF' + ([string]$configured.color).Substring(1).ToUpperInvariant()
+        }
+    }
+    $path = Join-Path $base ([string]$entry.file)
+    if (-not (Test-Path $path)) { return '#FF8B4A58' }
+    $bitmap = [System.Drawing.Bitmap]::new($path)
+    try {
+        $bins = @{}
+        $step = [Math]::Max(1, [Math]::Floor([Math]::Min($bitmap.Width, $bitmap.Height) / 32))
+        for ($y = 0; $y -lt $bitmap.Height; $y += $step) {
+            for ($x = 0; $x -lt $bitmap.Width; $x += $step) {
+                $pixel = $bitmap.GetPixel($x, $y)
+                if ($pixel.A -lt 80) { continue }
+                $max = [Math]::Max($pixel.R, [Math]::Max($pixel.G, $pixel.B))
+                $min = [Math]::Min($pixel.R, [Math]::Min($pixel.G, $pixel.B))
+                if ($max -lt 35 -or $min -gt 235) { continue }
+                $saturation = if ($max -eq 0) { 0.0 } else { ($max - $min) / [double]$max }
+                $key = '{0},{1},{2}' -f ([Math]::Floor($pixel.R / 32)), ([Math]::Floor($pixel.G / 32)), ([Math]::Floor($pixel.B / 32))
+                if (-not $bins.ContainsKey($key)) { $bins[$key] = [pscustomobject]@{ score = 0.0; r = 0.0; g = 0.0; b = 0.0; weight = 0.0 } }
+                $weight = 0.25 + ($saturation * 1.75)
+                $bin = $bins[$key]
+                $bin.score += $weight
+                $bin.r += $pixel.R * $weight
+                $bin.g += $pixel.G * $weight
+                $bin.b += $pixel.B * $weight
+                $bin.weight += $weight
+            }
+        }
+        $winner = @($bins.Values | Sort-Object score -Descending | Select-Object -First 1)
+        if ($winner.Count -eq 0) { return '#FF8B4A58' }
+        $color = $winner[0]
+        '#FF{0:X2}{1:X2}{2:X2}' -f [int]($color.r / $color.weight), [int]($color.g / $color.weight), [int]($color.b / $color.weight)
+    }
+    finally {
+        $bitmap.Dispose()
+    }
+}
+
+function Add-TaskBadgeMetadata($task, [bool]$randomize) {
+    $badges = @(Get-BadgeAssets)
+    $labels = @(Get-BadgeAssets $true)
+    if ($badges.Count -gt 0 -and [string]::IsNullOrWhiteSpace([string]$task.badge)) {
+        $index = if ($randomize) { Get-Random -Minimum 0 -Maximum $badges.Count } else { [Math]::Abs(([string]$task.id).GetHashCode()) % $badges.Count }
+        $task | Add-Member -NotePropertyName badge -NotePropertyValue ([string]$badges[$index]) -Force
+    }
+    if ($labels.Count -gt 0 -and [string]::IsNullOrWhiteSpace([string]$task.label)) {
+        $index = if ($randomize) { Get-Random -Minimum 0 -Maximum $labels.Count } else { [Math]::Abs((([string]$task.id) + 'label').GetHashCode()) % $labels.Count }
+        $task | Add-Member -NotePropertyName label -NotePropertyValue ([string]$labels[$index]) -Force
+    }
+    $task | Add-Member -NotePropertyName badgeColor -NotePropertyValue (Get-DominantIconColor ([string]$task.icon)) -Force
+}
+
+function Initialize-LegacyTaskBadges {
+    $changed = $false
+    foreach ($task in @($script:tasks)) {
+        if ([string]::IsNullOrWhiteSpace([string]$task.badge) -or [string]::IsNullOrWhiteSpace([string]$task.badgeColor)) {
+            Add-TaskBadgeMetadata $task $false
+            $changed = $true
+        }
+        $configuredColor = Get-DominantIconColor ([string]$task.icon)
+        if ([string]$task.badgeColor -ne $configuredColor) {
+            $task | Add-Member -NotePropertyName badgeColor -NotePropertyValue $configuredColor -Force
+            $changed = $true
+        }
+    }
+    if ($changed) { Save-Tasks }
+}
+
+function New-TaskBadgeVisual($task, [double]$size) {
+    $grid = New-Object System.Windows.Controls.Grid
+    $badgePath = [string]$task.badge
+    if (-not [string]::IsNullOrWhiteSpace($badgePath) -and (Test-Path (Join-Path $base $badgePath))) {
+        $mask = New-Object System.Windows.Media.ImageBrush
+        $mask.ImageSource = (New-ImageControl $badgePath $size).Source
+        $mask.Stretch = 'Uniform'
+        $colorLayer = New-Object System.Windows.Controls.Border
+        $colorLayer.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString([string]$task.badgeColor)
+        $colorLayer.OpacityMask = $mask
+        $colorLayer.Margin = 2
+        $grid.Children.Add($colorLayer) | Out-Null
+        $texture = New-ImageControl $badgePath $size
+        $texture.Opacity = 0.58
+        $grid.Children.Add($texture) | Out-Null
+    }
+    $labelPath = [string]$task.label
+    if (-not [string]::IsNullOrWhiteSpace($labelPath) -and (Test-Path (Join-Path $base $labelPath))) {
+        $label = New-ImageControl $labelPath ($size * 0.48)
+        $grid.Children.Add($label) | Out-Null
+    }
+    else {
+        $symbol = New-Object System.Windows.Controls.TextBlock
+        $symbol.Text = if ([string]::IsNullOrWhiteSpace([string]$task.title)) { '?' } else { ([string]$task.title).Substring(0, 1).ToUpperInvariant() }
+        $symbol.Foreground = [System.Windows.Media.Brushes]::White
+        $symbol.FontWeight = 'Bold'
+        $symbol.FontSize = [Math]::Max(12, $size * 0.32)
+        $symbol.HorizontalAlignment = 'Center'
+        $symbol.VerticalAlignment = 'Center'
+        $symbol.Effect = New-Object System.Windows.Media.Effects.DropShadowEffect
+        $grid.Children.Add($symbol) | Out-Null
+    }
+    $grid
 }
 
 function New-ImageControl([string]$relativePath, [double]$size) {
@@ -189,7 +323,7 @@ function Populate-AddIconGrid {
     if ($icons.Count -eq 0) { return }
 
     $columns = [Math]::Max(1, [Math]::Min(8, [int]$script:config.icons.columns))
-    $panelWidth = 320.0
+    $panelWidth = 210.0
     $cellSize = [Math]::Max(34.0, [Math]::Floor($panelWidth / [double]$columns) - 6.0)
     $imageSize = [Math]::Max(26.0, $cellSize - 10.0)
 
@@ -232,6 +366,11 @@ function Open-AddTaskPanel {
     $script:addTitleBox.Text = ''
     $script:addDescriptionBox.Text = ''
     $script:addSelectedIcon = Get-DefaultTaskIconId
+    $script:pendingNewTask = $null
+    $script:addBody.Visibility = 'Visible'
+    $script:addSavingPanel.Visibility = 'Collapsed'
+    $script:addCreateButton.IsEnabled = $true
+    $script:addCloseButton.IsEnabled = $true
 
     Populate-AddIconGrid
 
@@ -240,13 +379,60 @@ function Open-AddTaskPanel {
 }
 
 function Close-AddTaskPanel {
+    if ($null -ne $script:addFailureTimer) {
+        $script:addFailureTimer.Stop()
+        $script:addFailureTimer = $null
+    }
+    $script:pendingNewTask = $null
     if ($null -ne $script:addPanel) {
         $script:addPanel.Visibility = 'Collapsed'
     }
 }
 
+function Show-AddFailure([string]$message) {
+    $script:addSavingTitleText.Text = 'COULD NOT ADD ITEM'
+    $script:addSavingStatusText.Text = $message
+    $script:addFailureTimer = New-Object System.Windows.Threading.DispatcherTimer
+    $script:addFailureTimer.Interval = [TimeSpan]::FromMilliseconds(2600)
+    $script:addFailureTimer.Add_Tick({
+        $script:addFailureTimer.Stop()
+        $script:addFailureTimer = $null
+        Close-AddTaskPanel
+    })
+    $script:addFailureTimer.Start()
+}
+
+function Complete-NewTask {
+    $newTask = $script:pendingNewTask
+    if ($null -eq $newTask) { return }
+
+    try {
+        $size = [double]$script:area.taskSize
+        $position = @(Find-FreePosition $size)
+
+        if ($position.Count -lt 2) {
+            $smile = [char]::ConvertFromUtf32(0x1F60A)
+            Show-AddFailure "No space is available on the board. Taking on too many tasks at once is not responsible.`nFinish your tasks before creating more. $smile"
+            return
+        }
+
+        $newTask | Add-Member -NotePropertyName x -NotePropertyValue ([Math]::Round([double]$position[0], 1)) -Force
+        $newTask | Add-Member -NotePropertyName y -NotePropertyValue ([Math]::Round([double]$position[1], 1)) -Force
+        $script:tasks = @($script:tasks) + @($newTask)
+        Save-Tasks
+        Render-Tasks
+        Close-AddTaskPanel
+    }
+    catch {
+        $failedTaskId = [string]$newTask.id
+        $script:tasks = @($script:tasks | Where-Object { [string]$_.id -ne $failedTaskId })
+        Show-AddFailure 'The item could not be added. Please try again.'
+    }
+}
+
 function Create-NewTask {
     if ($null -eq $script:addTitleBox -or $null -eq $script:addDescriptionBox) { return }
+    if (-not $script:addCreateButton.IsEnabled) { return }
 
     $title = $script:addTitleBox.Text.Trim()
     if ([string]::IsNullOrWhiteSpace($title)) { return }
@@ -259,34 +445,28 @@ function Create-NewTask {
 
     if ([string]::IsNullOrWhiteSpace([string]$iconId)) { return }
 
-    $size = [double]$script:area.taskSize
-    $position = @(Find-FreePosition $size)
-
-    if ($position.Count -lt 2) { return }
-
-    $x = [double]$position[0]
-    $y = [double]$position[1]
-    $clamped = Clamp-ToPolygon $x $y $size
-
-    if ($null -ne $clamped) {
-        $x = [double]$clamped.X
-        $y = [double]$clamped.Y
-    }
-
     $newTask = [pscustomobject][ordered]@{
         id = 'task-' + [Guid]::NewGuid().ToString('N')
         title = $title
         description = $script:addDescriptionBox.Text.Trim()
         icon = [string]$iconId
-        x = [Math]::Round($x, 1)
-        y = [Math]::Round($y, 1)
+        isNew = $true
+        createdAt = [DateTime]::Now.ToString('o')
     }
 
-    $script:tasks = @($script:tasks) + @($newTask)
-
-    Save-Tasks
-    Render-Tasks
-    Close-AddTaskPanel
+    Add-TaskBadgeMetadata $newTask $true
+    $script:pendingNewTask = $newTask
+    $script:addBody.Visibility = 'Collapsed'
+    $script:addSavingPanel.Visibility = 'Visible'
+    $script:addSavingVisualHost.Child = New-TaskBadgeVisual $newTask 92
+    $script:addSavingTitleText.Text = [string]$newTask.title
+    $script:addSavingStatusText.Text = 'SAVING...'
+    $script:addCreateButton.IsEnabled = $false
+    $script:addCloseButton.IsEnabled = $false
+    $script:window.Dispatcher.BeginInvoke(
+        [System.Action]{ Complete-NewTask },
+        [System.Windows.Threading.DispatcherPriority]::ContextIdle
+    ) | Out-Null
 }
 
 function Set-EditButtonVisual([bool]$saveMode) {
@@ -327,6 +507,76 @@ function Read-BackgroundRegistry {
     }
 
     $data
+}
+
+function Read-ProfileRegistry {
+    $manifest = Read-JsonFile $profilesPath
+    $profiles = @()
+    foreach ($entry in @($manifest.profiles)) {
+        $profile = Read-JsonFile (Join-Path $base ([string]$entry.file))
+        $profile | Add-Member -NotePropertyName sourceFile -NotePropertyValue ([string]$entry.file) -Force
+        $profiles += $profile
+    }
+    [pscustomobject]@{ profiles = $profiles }
+}
+
+function Get-Profile([string]$id) {
+    $registry = Read-ProfileRegistry
+    @($registry.profiles | Where-Object { [string]$_.id -eq $id }) | Select-Object -First 1
+}
+
+function Get-ActiveProfile {
+    $id = if ($script:editMode -and -not [string]::IsNullOrWhiteSpace([string]$script:editProfileId)) { [string]$script:editProfileId } else { [string]$script:config.profile }
+    Get-Profile $id
+}
+
+function Save-ProfileRegistry($registry) {
+    foreach ($profile in @($registry.profiles)) {
+        $path = Join-Path $base ([string]$profile.sourceFile)
+        $profile.PSObject.Properties.Remove('sourceFile')
+        $tempPath = "$path.tmp"
+        [System.IO.File]::WriteAllText($tempPath, ($profile | ConvertTo-Json -Depth 30), [System.Text.UTF8Encoding]::new($false))
+        Move-Item -LiteralPath $tempPath -Destination $path -Force
+    }
+}
+
+function Set-Profile([string]$id, [bool]$editing) {
+    $profile = Get-Profile $id
+    if ($null -eq $profile) { return }
+    $state = if ($null -ne $profile.state) { Copy-JsonObject $profile.state } else { Copy-JsonObject $profile.defaults }
+    if ($editing) {
+        $script:editProfileId = $id
+        $script:editWorkingArea = Copy-JsonObject $state.area
+        $script:editAddX = [double]$state.addX
+        $script:editAddY = [double]$state.addY
+        $script:config.buttons.addSize = [double]$state.addSize
+    }
+    else {
+        $script:config.profile = $id
+        $script:area = Copy-JsonObject $state.area
+        $script:config.buttons.addX = [double]$state.addX
+        $script:config.buttons.addY = [double]$state.addY
+        $script:config.buttons.addSize = [double]$state.addSize
+        Save-Area $script:area
+        Save-Config
+    }
+    Render-Background
+    Apply-Config
+    Render-Area
+    Render-EditorNodes
+    Render-Tasks
+}
+
+function Save-ActiveProfileState {
+    $registry = Read-ProfileRegistry
+    $profile = @($registry.profiles | Where-Object { [string]$_.id -eq [string]$script:config.profile }) | Select-Object -First 1
+    if ($null -eq $profile) { return }
+    if ($null -eq $profile.state) { $profile.state = Copy-JsonObject $profile.defaults }
+    $profile.state.area = Copy-JsonObject $script:area
+    $profile.state.addX = [Math]::Round([double]$script:config.buttons.addX, 1)
+    $profile.state.addY = [Math]::Round([double]$script:config.buttons.addY, 1)
+    $profile.state.addSize = [Math]::Round([double]$script:config.buttons.addSize, 1)
+    Save-ProfileRegistry $registry
 }
 
 function Save-BackgroundRegistry($registry) {
@@ -370,16 +620,16 @@ function Get-ActiveAddY {
 }
 
 function Get-ActiveBackgroundFile {
-    if ($script:editMode -and -not [string]::IsNullOrWhiteSpace([string]$script:editBackgroundFile)) {
-        return [string]$script:editBackgroundFile
-    }
-
-    [string]$script:config.background.file
+    $profile = Get-ActiveProfile
+    if ($null -eq $profile) { return [string]$script:config.background.file }
+    if (@($script:tasks).Count -eq 0) { return [string]$profile.emptyBackground }
+    [string]$profile.background
 }
 
 function New-EditCheckpoint {
     [pscustomobject][ordered]@{
         area = Copy-JsonObject $script:editWorkingArea
+        profileId = [string]$script:editProfileId
         backgroundFile = [string]$script:editBackgroundFile
         backgroundScale = [double]$script:editBackgroundScale
         backgroundOffsetX = [double]$script:editBackgroundOffsetX
@@ -402,6 +652,55 @@ function Save-Tasks {
 
 function Get-TaskById([string]$id) {
     @($script:tasks | Where-Object { [string]$_.id -eq $id }) | Select-Object -First 1
+}
+
+function Get-StartupShortcutPath {
+    Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::Startup)) 'Silksong Wish Board.lnk'
+}
+
+function Test-StartupEnabled {
+    Test-Path -LiteralPath (Get-StartupShortcutPath)
+}
+
+function Enable-Startup {
+    $projectRoot = Split-Path -Parent $base
+    $launcher = Join-Path $projectRoot 'Desktop Wish Board.vbs'
+    if (-not (Test-Path -LiteralPath $launcher)) { throw 'Launcher not found.' }
+    $startupDirectory = [Environment]::GetFolderPath([Environment+SpecialFolder]::Startup)
+    if (-not (Test-Path -LiteralPath $startupDirectory)) {
+        New-Item -ItemType Directory -Path $startupDirectory -Force | Out-Null
+    }
+    $shell = New-Object -ComObject WScript.Shell
+    try {
+        $shortcut = $shell.CreateShortcut((Get-StartupShortcutPath))
+        $shortcut.TargetPath = Join-Path $env:WINDIR 'System32\wscript.exe'
+        $shortcut.Arguments = '"' + $launcher + '"'
+        $shortcut.WorkingDirectory = $projectRoot
+        $shortcut.IconLocation = (Join-Path $base 'widget.ico') + ',0'
+        $shortcut.Description = 'Silksong Wish Board Widget'
+        $shortcut.Save()
+    }
+    finally {
+        if ($null -ne $shortcut) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($shortcut) }
+        if ($null -ne $shell) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell) }
+    }
+}
+
+function Disable-Startup {
+    $shortcutPath = Get-StartupShortcutPath
+    if (Test-Path -LiteralPath $shortcutPath) {
+        Remove-Item -LiteralPath $shortcutPath -Force
+    }
+}
+
+function Update-StartupButton {
+    if ($null -eq $script:startupToggle) { return }
+    $enabled = Test-StartupEnabled
+    $script:startupToggle.Content = if ($enabled) { 'STARTUP ON' } else { 'STARTUP OFF' }
+    $script:startupToggle.ToolTip = if ($enabled) { 'Disable Start with Windows' } else { 'Enable Start with Windows' }
+    $script:startupToggle.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString(
+        $(if ($enabled) { '#CC198754' } else { '#CCD93025' })
+    )
 }
 
 function New-RoundButton([string]$text, [double]$size) {
@@ -485,6 +784,7 @@ function Update-EditButtons {
         $script:borderToggle.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString(
             $(if ($enabled) { '#CC198754' } else { '#CCD93025' })
         )
+        Update-StartupButton
     }
 }
 
@@ -528,6 +828,7 @@ function Cancel-EditSession {
     $script:undoButton.Visibility = 'Collapsed'
     $script:clearButton.Visibility = 'Collapsed'
     $script:borderToggle.Visibility = 'Collapsed'
+    $script:startupToggle.Visibility = 'Collapsed'
     $script:cancelEditButton.Visibility = 'Collapsed'
     $script:backgroundButton.Visibility = 'Collapsed'
     $script:gridButton.Visibility = 'Collapsed'
@@ -627,7 +928,7 @@ function Test-TaskCollision(
         [double]$script:config.tasks.collisionMargin
     }
     else {
-        6.0
+        2.0
     }
 
     $radius = ($size * 0.5) + ($margin * 0.5)
@@ -871,45 +1172,33 @@ function Normalize-Tasks-ToArea {
 
 function Find-FreePosition([double]$size) {
     $points = @(Get-AreaPoints)
-    if ($points.Count -lt 3) { return @(20.0, 20.0) }
+    if ($points.Count -lt 3) { return $null }
 
     $minX = ($points | Measure-Object -Property X -Minimum).Minimum
     $maxX = ($points | Measure-Object -Property X -Maximum).Maximum
     $minY = ($points | Measure-Object -Property Y -Minimum).Minimum
     $maxY = ($points | Measure-Object -Property Y -Maximum).Maximum
-    $best = $null
-    $bestScore = -1.0
-    $step = [Math]::Max(18, $size * 0.65)
+    $centerX = ($points | Measure-Object -Property X -Average).Average
+    $centerY = ($points | Measure-Object -Property Y -Average).Average
+    $maxRadius = [Math]::Sqrt(
+        [Math]::Pow([Math]::Max([Math]::Abs($centerX - $minX), [Math]::Abs($maxX - $centerX)), 2) +
+        [Math]::Pow([Math]::Max([Math]::Abs($centerY - $minY), [Math]::Abs($maxY - $centerY)), 2)
+    )
+    $ringStep = 4.0
 
-    for ($cy = $minY; $cy -le $maxY; $cy += $step) {
-        for ($cx = $minX; $cx -le $maxX; $cx += $step) {
-            if (-not (Point-InPolygon $cx $cy)) { continue }
-            $x = $cx - $size / 2
-            $y = $cy - $size / 2
-            if (Test-TaskCollision '' $x $y $size) { continue }
-            $score = [double]::PositiveInfinity
-            foreach ($t in @($script:tasks)) {
-                $tx = [double]$t.x + $size / 2
-                $ty = [double]$t.y + $size / 2
-                $dx = $cx - $tx
-                $dy = $cy - $ty
-                $distance = [Math]::Sqrt(($dx * $dx) + ($dy * $dy))
-                if ($distance -lt $score) { $score = $distance }
-            }
-            if ($script:tasks.Count -eq 0) { $score = 999999 }
-            if ($score -gt $bestScore) {
-                $bestScore = $score
-                $best = @($x, $y)
+    for ($radius = 0.0; $radius -le $maxRadius; $radius += $ringStep) {
+        $samples = if ($radius -lt 0.1) { 1 } else { [Math]::Max(12, [int][Math]::Ceiling((2.0 * [Math]::PI * $radius) / $ringStep)) }
+        for ($index = 0; $index -lt $samples; $index++) {
+            $angle = if ($samples -eq 1) { 0.0 } else { (2.0 * [Math]::PI * $index) / $samples }
+            $x = $centerX + ([Math]::Cos($angle) * $radius) - ($size * 0.5)
+            $y = $centerY + ([Math]::Sin($angle) * $radius) - ($size * 0.5)
+            if (Test-TaskPlacementValid '' $x $y $size) {
+                return @([Math]::Round($x, 1), [Math]::Round($y, 1))
             }
         }
     }
 
-    if ($null -eq $best) {
-        $cx = ($points | Measure-Object -Property X -Average).Average
-        $cy = ($points | Measure-Object -Property Y -Average).Average
-        return @($cx - $size / 2, $cy - $size / 2)
-    }
-    $best
+    $null
 }
 
 function Save-Area {
@@ -1327,6 +1616,70 @@ function New-DetailOrnament {
     $view
 }
 
+function New-TaskPreviewControl($task) {
+    $titleLength = ([string]$task.title).Length
+    $previewWidth = [Math]::Max(190.0, [Math]::Min(420.0, 120.0 + ($titleLength * 7.2)))
+
+    $outer = New-Object System.Windows.Controls.Grid
+    $outer.Width = $previewWidth
+    $outer.Height = 150
+    foreach ($height in @(24, 102, 24)) {
+        $row = New-Object System.Windows.Controls.RowDefinition
+        $row.Height = New-Object System.Windows.GridLength($height)
+        $outer.RowDefinitions.Add($row)
+    }
+
+    $top = New-DetailOrnament
+    $top.Height = 22
+    [System.Windows.Controls.Grid]::SetRow($top, 0)
+    $outer.Children.Add($top) | Out-Null
+
+    $card = New-Object System.Windows.Controls.Border
+    $card.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#F4070708')
+    $card.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#66FFFFFF')
+    $card.BorderThickness = 1
+    $card.CornerRadius = 4
+    $card.Padding = '14,10'
+    [System.Windows.Controls.Grid]::SetRow($card, 1)
+    $outer.Children.Add($card) | Out-Null
+
+    $content = New-Object System.Windows.Controls.Grid
+    $iconRow = New-Object System.Windows.Controls.RowDefinition
+    $iconRow.Height = New-Object System.Windows.GridLength(58)
+    $titleRow = New-Object System.Windows.Controls.RowDefinition
+    $titleRow.Height = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star)
+    $content.RowDefinitions.Add($iconRow)
+    $content.RowDefinitions.Add($titleRow)
+    $card.Child = $content
+
+    $iconEntry = Get-IconEntry ([string]$task.icon)
+    if ($null -ne $iconEntry) {
+        $icon = New-ImageControl ([string]$iconEntry.file) 54
+        [System.Windows.Controls.Grid]::SetRow($icon, 0)
+        $content.Children.Add($icon) | Out-Null
+    }
+
+    $title = New-Object System.Windows.Controls.TextBlock
+    $title.Text = [string]$task.title
+    $title.Foreground = [System.Windows.Media.Brushes]::White
+    $title.FontSize = 16
+    $title.FontWeight = 'SemiBold'
+    $title.TextAlignment = 'Center'
+    $title.TextTrimming = 'CharacterEllipsis'
+    $title.VerticalAlignment = 'Center'
+    [System.Windows.Controls.Grid]::SetRow($title, 1)
+    $content.Children.Add($title) | Out-Null
+
+    $bottom = New-DetailOrnament
+    $bottom.Height = 22
+    $bottom.RenderTransformOrigin = '0.5,0.5'
+    $bottom.RenderTransform = New-Object System.Windows.Media.ScaleTransform(1, -1)
+    [System.Windows.Controls.Grid]::SetRow($bottom, 2)
+    $outer.Children.Add($bottom) | Out-Null
+
+    $outer
+}
+
 function Set-DetailEditVisual($button, [bool]$saveMode) {
     $view = New-Object System.Windows.Controls.Viewbox
     $view.Width = 17
@@ -1541,6 +1894,7 @@ function Save-DetailItem {
     $task.title = $title
     $task.description = $script:detailDescriptionBox.Text.Trim()
     $task.icon = [string]$script:detailPendingIconId
+    $task | Add-Member -NotePropertyName badgeColor -NotePropertyValue (Get-DominantIconColor ([string]$task.icon)) -Force
 
     Save-Tasks
 
@@ -2002,6 +2356,22 @@ function Render-Background {
         [string]$script:config.background.stretch,
         $true
     )
+    Render-ProfileAccessory
+}
+
+function Render-ProfileAccessory {
+    if ($null -eq $script:profileAccessory) { return }
+    $profile = Get-ActiveProfile
+    $script:profileAccessory.Source = $null
+    if ($null -eq $profile) { return }
+    $path = Join-Path $base ([string]$profile.accessory)
+    if (-not (Test-Path $path)) { return }
+    $bitmap = New-Object System.Windows.Media.Imaging.BitmapImage
+    $bitmap.BeginInit()
+    $bitmap.CacheOption = 'OnLoad'
+    $bitmap.UriSource = New-Object System.Uri($path)
+    $bitmap.EndInit()
+    $script:profileAccessory.Source = $bitmap
 }
 
 function Render-Area {
@@ -2031,6 +2401,9 @@ function Render-Area {
 }
 
 function Render-Tasks {
+    Render-Background
+    $script:hoverPreviewHost.Visibility = 'Collapsed'
+    $script:hoverPreviewHost.Content = $null
     foreach ($child in @($script:taskLayer.Children)) {
         $script:taskLayer.Children.Remove($child)
     }
@@ -2043,26 +2416,59 @@ function Render-Tasks {
         $button.Height = $size
         $button.Tag = [string]$taskItem.id
         $button.Cursor = [System.Windows.Input.Cursors]::Hand
-        $button.ToolTip = [string]$taskItem.title
         $button.Background = [System.Windows.Media.Brushes]::Transparent
         $button.BorderBrush = [System.Windows.Media.Brushes]::Transparent
         $button.BorderThickness = 0
         $button.Padding = 2
+        $button.Add_MouseEnter({
+            param($s, $e)
+            $hoverTask = Get-TaskById ([string]$s.Tag)
+            if ($null -eq $hoverTask) { return }
+            $script:hoverPreviewHost.Content = New-TaskPreviewControl $hoverTask
+            $script:hoverPreviewHost.Visibility = 'Visible'
+        })
+        $button.Add_MouseLeave({
+            $script:hoverPreviewHost.Visibility = 'Collapsed'
+            $script:hoverPreviewHost.Content = $null
+        })
 
-        $iconId = if ([string]::IsNullOrWhiteSpace([string]$taskItem.icon)) { 'icon-01' } else { [string]$taskItem.icon }
-        $iconEntry = Get-IconEntry $iconId
+        $taskVisual = New-TaskBadgeVisual $taskItem ($size - 2)
+        $taskVisual.RenderTransformOrigin = '0.5,0.5'
+        $taskVisual.RenderTransform = New-Object System.Windows.Media.ScaleTransform(1.2, 1.2)
+        $button.Content = $taskVisual
 
-        if ($null -ne $iconEntry) {
-            $taskVisual = New-Object System.Windows.Controls.Grid
-            $plate = New-ImageControl 'item-background.png' ($size - 2)
-            $plate.Stretch = 'Fill'
-            $taskVisual.Children.Add($plate) | Out-Null
-            $taskIcon = New-ImageControl ([string]$iconEntry.file) ($size * 0.72)
-            $taskIcon.HorizontalAlignment = 'Center'
-            $taskIcon.VerticalAlignment = 'Center'
-            $taskVisual.Children.Add($taskIcon) | Out-Null
-            $button.Content = $taskVisual
+        if ([bool]$taskItem.isNew) {
+            $aura = New-Object System.Windows.Media.Effects.DropShadowEffect
+            $aura.Color = [System.Windows.Media.ColorConverter]::ConvertFromString([string]$taskItem.badgeColor)
+            $aura.BlurRadius = 14
+            $aura.ShadowDepth = 0
+            $aura.Opacity = 0.9
+            $button.Effect = $aura
+            $pulse = New-Object System.Windows.Media.Animation.DoubleAnimation
+            $pulse.From = 0.28
+            $pulse.To = 0.98
+            $pulse.Duration = [System.Windows.Duration]::new([TimeSpan]::FromMilliseconds((Get-Random -Minimum 750 -Maximum 1801)))
+            $pulse.BeginTime = [TimeSpan]::FromMilliseconds((Get-Random -Minimum 0 -Maximum 901))
+            $pulse.AutoReverse = $true
+            $pulse.RepeatBehavior = [System.Windows.Media.Animation.RepeatBehavior]::Forever
+            $aura.BeginAnimation([System.Windows.Media.Effects.DropShadowEffect]::OpacityProperty, $pulse)
         }
+
+        $contextMenu = New-Object System.Windows.Controls.ContextMenu
+        $deleteItem = New-Object System.Windows.Controls.MenuItem
+        $deleteItem.Header = 'Delete'
+        $deleteItem.Tag = [string]$taskItem.id
+        $deleteItem.Add_Click({
+            param($s, $e)
+            $taskIdToDelete = [string]$s.Tag
+            if ([string]::IsNullOrWhiteSpace($taskIdToDelete)) { return }
+            $script:tasks = @($script:tasks | Where-Object { [string]$_.id -ne $taskIdToDelete })
+            Save-Tasks
+            Render-Tasks
+            $e.Handled = $true
+        })
+        $contextMenu.Items.Add($deleteItem) | Out-Null
+        $button.ContextMenu = $contextMenu
 
         [System.Windows.Controls.Canvas]::SetLeft($button, [double]$taskItem.x)
         [System.Windows.Controls.Canvas]::SetTop($button, [double]$taskItem.y)
@@ -2167,6 +2573,11 @@ function Render-Tasks {
                     Render-Tasks
                 }
                 else {
+                    if ([bool]$selectedTask.isNew) {
+                        $selectedTask | Add-Member -NotePropertyName isNew -NotePropertyValue $false -Force
+                        $s.Effect = $null
+                        Save-Tasks
+                    }
                     Show-DetailsById $taskId
                 }
             }
@@ -2374,6 +2785,8 @@ function Apply-Config {
     $addSize = if ($null -ne $script:config.buttons.addSize) { [double]$script:config.buttons.addSize } else { 44.0 }
     $script:addButton.Width = $addSize
     $script:addButton.Height = $addSize
+    $script:profileAccessory.Width = $addSize
+    $script:profileAccessory.Height = $addSize
 
     $customAddX = Get-ActiveAddX
     $customAddY = Get-ActiveAddY
@@ -2415,6 +2828,8 @@ function Apply-Config {
 
     [System.Windows.Controls.Canvas]::SetLeft($script:addButton, $safeX)
     [System.Windows.Controls.Canvas]::SetTop($script:addButton, $safeY)
+    [System.Windows.Controls.Canvas]::SetLeft($script:profileAccessory, $safeX)
+    [System.Windows.Controls.Canvas]::SetTop($script:profileAccessory, $safeY)
 
     [System.Windows.Controls.Canvas]::SetLeft($script:addSizeSlider, [Math]::Min($designWidth - 108.0, $safeX + $addSize + 8.0))
     [System.Windows.Controls.Canvas]::SetTop($script:addSizeSlider, $safeY + (($addSize - 30.0) * 0.5))
@@ -2437,6 +2852,8 @@ function Apply-Config {
     [System.Windows.Controls.Canvas]::SetTop($script:backgroundButton, $editY)
     [System.Windows.Controls.Canvas]::SetLeft($script:gridButton, 342.0)
     [System.Windows.Controls.Canvas]::SetTop($script:gridButton, $editY)
+    [System.Windows.Controls.Canvas]::SetLeft($script:startupToggle, 392.0)
+    [System.Windows.Controls.Canvas]::SetTop($script:startupToggle, $editY - 10.0)
 
     $script:opacitySlider.Visibility = if ($script:editMode) { 'Collapsed' } else { 'Visible' }
     $script:opacityLabel.Visibility = if ($script:editMode) { 'Collapsed' } else { 'Visible' }
@@ -2479,6 +2896,7 @@ $script:tasks = @(Read-Tasks)
 $script:configStamp = (Get-Item $configPath).LastWriteTimeUtc
 $script:areaStamp = (Get-Item $areaPath).LastWriteTimeUtc
 $script:tasksStamp = (Get-Item $tasksPath).LastWriteTimeUtc
+Initialize-LegacyTaskBadges
 $script:positionInitialized = $false
 $script:userHidden = $false
 $script:exiting = $false
@@ -2518,6 +2936,13 @@ $background.IsHitTestVisible = $false
 $script:background = $background
 $root.Children.Add($background) | Out-Null
 
+$profileAccessory = New-Object System.Windows.Controls.Image
+$profileAccessory.Stretch = [System.Windows.Media.Stretch]::Uniform
+$profileAccessory.IsHitTestVisible = $false
+$script:profileAccessory = $profileAccessory
+$root.Children.Add($profileAccessory) | Out-Null
+[System.Windows.Controls.Panel]::SetZIndex($profileAccessory, 899)
+
 $taskArea = New-Object System.Windows.Shapes.Polygon
 $taskArea.Fill = [System.Windows.Media.Brushes]::Transparent
 $taskArea.Stroke = New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.Color]::FromArgb(130, 255, 255, 255))
@@ -2530,6 +2955,19 @@ $taskLayer.Width = 1000
 $taskLayer.Height = 1000
 $script:taskLayer = $taskLayer
 $root.Children.Add($taskLayer) | Out-Null
+
+$hoverPreviewHost = New-Object System.Windows.Controls.ContentControl
+$hoverPreviewHost.Width = [double]$script:config.widget.designWidth
+$hoverPreviewHost.Height = 150
+$hoverPreviewHost.HorizontalContentAlignment = 'Center'
+$hoverPreviewHost.VerticalContentAlignment = 'Top'
+$hoverPreviewHost.IsHitTestVisible = $false
+$hoverPreviewHost.Visibility = 'Collapsed'
+[System.Windows.Controls.Canvas]::SetLeft($hoverPreviewHost, 0)
+[System.Windows.Controls.Canvas]::SetTop($hoverPreviewHost, 8)
+[System.Windows.Controls.Panel]::SetZIndex($hoverPreviewHost, 1900)
+$script:hoverPreviewHost = $hoverPreviewHost
+$root.Children.Add($hoverPreviewHost) | Out-Null
 
 $editorLayer = New-Object System.Windows.Controls.Canvas
 $editorLayer.Width = 1000
@@ -2602,6 +3040,8 @@ $root.Children.Add($opacityLabel) | Out-Null
 $addButton = New-RoundButton '+' 44
 $addButton.FontSize = 22
 $addButton.ToolTip = 'Add Task'
+$addButton.Background = [System.Windows.Media.Brushes]::Transparent
+$addButton.BorderBrush = [System.Windows.Media.Brushes]::Transparent
 $script:addButton = $addButton
 $root.Children.Add($addButton) | Out-Null
 [System.Windows.Controls.Panel]::SetZIndex($addButton, 2000)
@@ -2647,6 +3087,14 @@ $borderToggle.ToolTip = 'Toggle Border'
 $script:borderToggle = $borderToggle
 $root.Children.Add($borderToggle) | Out-Null
 [System.Windows.Controls.Panel]::SetZIndex($borderToggle, 2000)
+
+$startupToggle = New-RoundButton 'STARTUP OFF' 64
+$startupToggle.FontSize = 7
+$startupToggle.Visibility = 'Collapsed'
+$startupToggle.ToolTip = 'Enable Start with Windows'
+$script:startupToggle = $startupToggle
+$root.Children.Add($startupToggle) | Out-Null
+[System.Windows.Controls.Panel]::SetZIndex($startupToggle, 2000)
 
 $cancelEditButton = New-RoundButton 'CANCEL' 44
 $cancelEditButton.FontSize = 7
@@ -2756,8 +3204,6 @@ $backgroundYSlider.Width = 250
 $backgroundYSlider.Margin = '0,2,0,8'
 $script:backgroundYSlider = $backgroundYSlider
 $backgroundTransformPanel.Children.Add($backgroundYSlider) | Out-Null
-
-$backgroundPanelStack.Children.Add($backgroundTransformPanel) | Out-Null
 
 $backgroundScroll = New-Object System.Windows.Controls.ScrollViewer
 $backgroundScroll.VerticalScrollBarVisibility = 'Auto'
@@ -2995,31 +3441,58 @@ $detailsPanel.Child = $detailScroll
 $root.Children.Add($detailsPanel) | Out-Null
 [System.Windows.Controls.Panel]::SetZIndex($detailsPanel, 4000)
 
-$addPanel = New-Object System.Windows.Controls.Border
-$addPanel.Width = 360
-$addPanel.MaxHeight = 500
-$addPanel.Background = New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.Color]::FromArgb(245, 24, 24, 29))
-$addPanel.BorderBrush = New-Object System.Windows.Media.SolidColorBrush ([System.Windows.Media.Color]::FromArgb(190, 230, 230, 230))
-$addPanel.BorderThickness = 1
-$addPanel.CornerRadius = 10
-$addPanel.Padding = 14
+$addPanel = New-Object System.Windows.Controls.Grid
+$addPanel.Width = 500
+$addPanel.Height = 350
 $addPanel.Visibility = 'Collapsed'
-[System.Windows.Controls.Canvas]::SetLeft($addPanel, 80)
-[System.Windows.Controls.Canvas]::SetTop($addPanel, 78)
+[System.Windows.Controls.Canvas]::SetLeft($addPanel, 10)
+[System.Windows.Controls.Canvas]::SetTop($addPanel, 88)
 $script:addPanel = $addPanel
 
-$addScroll = New-Object System.Windows.Controls.ScrollViewer
-$addScroll.VerticalScrollBarVisibility = 'Auto'
-$addStack = New-Object System.Windows.Controls.StackPanel
+$addTopRow = New-Object System.Windows.Controls.RowDefinition
+$addTopRow.Height = New-Object System.Windows.GridLength(26)
+$addCardRow = New-Object System.Windows.Controls.RowDefinition
+$addCardRow.Height = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star)
+$addBottomRow = New-Object System.Windows.Controls.RowDefinition
+$addBottomRow.Height = New-Object System.Windows.GridLength(26)
+$addPanel.RowDefinitions.Add($addTopRow)
+$addPanel.RowDefinitions.Add($addCardRow)
+$addPanel.RowDefinitions.Add($addBottomRow)
+
+$addTopOrnament = New-DetailOrnament
+[System.Windows.Controls.Grid]::SetRow($addTopOrnament, 0)
+$addPanel.Children.Add($addTopOrnament) | Out-Null
+
+$addCard = New-Object System.Windows.Controls.Border
+$addCard.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#F4070708')
+$addCard.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#66FFFFFF')
+$addCard.BorderThickness = 1
+$addCard.CornerRadius = 4
+$addCard.Padding = 14
+[System.Windows.Controls.Grid]::SetRow($addCard, 1)
+$addPanel.Children.Add($addCard) | Out-Null
+
+$addLayout = New-Object System.Windows.Controls.Grid
+$addHeaderRow = New-Object System.Windows.Controls.RowDefinition
+$addHeaderRow.Height = New-Object System.Windows.GridLength(38)
+$addBodyRow = New-Object System.Windows.Controls.RowDefinition
+$addBodyRow.Height = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star)
+$addLayout.RowDefinitions.Add($addHeaderRow)
+$addLayout.RowDefinitions.Add($addBodyRow)
+$addCard.Child = $addLayout
 
 $addHeaderGrid = New-Object System.Windows.Controls.Grid
-$addHeaderGrid.Margin = '0,0,0,10'
 $addHeaderCol = New-Object System.Windows.Controls.ColumnDefinition
 $addHeaderCol.Width = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star)
+$addHeaderSaveCol = New-Object System.Windows.Controls.ColumnDefinition
+$addHeaderSaveCol.Width = New-Object System.Windows.GridLength(36)
 $addHeaderCloseCol = New-Object System.Windows.Controls.ColumnDefinition
 $addHeaderCloseCol.Width = New-Object System.Windows.GridLength(34)
 $addHeaderGrid.ColumnDefinitions.Add($addHeaderCol)
+$addHeaderGrid.ColumnDefinitions.Add($addHeaderSaveCol)
 $addHeaderGrid.ColumnDefinitions.Add($addHeaderCloseCol)
+[System.Windows.Controls.Grid]::SetRow($addHeaderGrid, 0)
+$addLayout.Children.Add($addHeaderGrid) | Out-Null
 
 $addHeader = New-Object System.Windows.Controls.TextBlock
 $addHeader.Text = 'New Task'
@@ -3029,67 +3502,133 @@ $addHeader.FontWeight = 'Bold'
 [System.Windows.Controls.Grid]::SetColumn($addHeader, 0)
 $addHeaderGrid.Children.Add($addHeader) | Out-Null
 
-$addClose = New-Object System.Windows.Controls.Button
+$createButton = New-RoundButton '' 30
+$script:addCreateButton = $createButton
+Set-DetailEditVisual $createButton $true
+$createButton.ToolTip = 'Create Task'
+[System.Windows.Controls.Grid]::SetColumn($createButton, 1)
+$addHeaderGrid.Children.Add($createButton) | Out-Null
+
+$addClose = New-RoundButton 'X' 30
 $script:addCloseButton = $addClose
-$addClose.Content = 'X'
-$addClose.Width = 30
-$addClose.Height = 28
-$addClose.ToolTip = 'Close'
-[System.Windows.Controls.Grid]::SetColumn($addClose, 1)
+$addClose.ToolTip = 'Cancel'
+[System.Windows.Controls.Grid]::SetColumn($addClose, 2)
 $addHeaderGrid.Children.Add($addClose) | Out-Null
-$addStack.Children.Add($addHeaderGrid) | Out-Null
+
+$addBody = New-Object System.Windows.Controls.Grid
+$script:addBody = $addBody
+$addBody.Margin = '0,8,0,0'
+$addIconsCol = New-Object System.Windows.Controls.ColumnDefinition
+$addIconsCol.Width = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star)
+$addFieldsCol = New-Object System.Windows.Controls.ColumnDefinition
+$addFieldsCol.Width = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star)
+$addBody.ColumnDefinitions.Add($addIconsCol)
+$addBody.ColumnDefinitions.Add($addFieldsCol)
+[System.Windows.Controls.Grid]::SetRow($addBody, 1)
+$addLayout.Children.Add($addBody) | Out-Null
+
+$addIconsStack = New-Object System.Windows.Controls.StackPanel
+$addIconsStack.Margin = '0,0,12,0'
+[System.Windows.Controls.Grid]::SetColumn($addIconsStack, 0)
+$addBody.Children.Add($addIconsStack) | Out-Null
 
 $addIconLabel = New-Object System.Windows.Controls.TextBlock
 $addIconLabel.Text = 'Icon'
 $addIconLabel.Foreground = [System.Windows.Media.Brushes]::White
 $addIconLabel.Margin = '0,0,0,4'
-$addStack.Children.Add($addIconLabel) | Out-Null
+$addIconsStack.Children.Add($addIconLabel) | Out-Null
 
 $addIconScroll = New-Object System.Windows.Controls.ScrollViewer
 $addIconScroll.HorizontalScrollBarVisibility = 'Disabled'
 $addIconScroll.VerticalScrollBarVisibility = 'Auto'
-$addIconScroll.MaxHeight = 180
+$addIconScroll.Height = 220
 $addIconGrid = New-Object System.Windows.Controls.WrapPanel
 $script:addIconGrid = $addIconGrid
 $addIconScroll.Content = $addIconGrid
-$addStack.Children.Add($addIconScroll) | Out-Null
+$addIconsStack.Children.Add($addIconScroll) | Out-Null
+
+$addFieldsStack = New-Object System.Windows.Controls.StackPanel
+$addFieldsStack.Margin = '12,0,0,0'
+[System.Windows.Controls.Grid]::SetColumn($addFieldsStack, 1)
+$addBody.Children.Add($addFieldsStack) | Out-Null
 
 $titleLabel = New-Object System.Windows.Controls.TextBlock
 $titleLabel.Text = 'Title'
 $titleLabel.Foreground = [System.Windows.Media.Brushes]::White
 $titleLabel.Margin = '0,10,0,4'
-$addStack.Children.Add($titleLabel) | Out-Null
+$addFieldsStack.Children.Add($titleLabel) | Out-Null
 
 $titleBox = New-Object System.Windows.Controls.TextBox
 $script:addTitleBox = $titleBox
 $titleBox.Height = 30
-$addStack.Children.Add($titleBox) | Out-Null
+$addFieldsStack.Children.Add($titleBox) | Out-Null
 
 $descLabel = New-Object System.Windows.Controls.TextBlock
 $descLabel.Text = 'Description'
 $descLabel.Foreground = [System.Windows.Media.Brushes]::White
 $descLabel.Margin = '0,10,0,4'
-$addStack.Children.Add($descLabel) | Out-Null
+$addFieldsStack.Children.Add($descLabel) | Out-Null
 
 $descBox = New-Object System.Windows.Controls.TextBox
 $script:addDescriptionBox = $descBox
-$descBox.Height = 82
+$descBox.Height = 142
 $descBox.AcceptsReturn = $true
 $descBox.TextWrapping = 'Wrap'
-$addStack.Children.Add($descBox) | Out-Null
+$addFieldsStack.Children.Add($descBox) | Out-Null
 
-$createButton = New-Object System.Windows.Controls.Button
-$script:addCreateButton = $createButton
-$createButton.Content = 'Create'
-$createButton.Width = 90
-$createButton.Height = 32
-$createButton.HorizontalAlignment = 'Right'
-$createButton.Margin = '0,14,0,0'
-$createButton.ToolTip = 'Create Task'
-$addStack.Children.Add($createButton) | Out-Null
+$addSavingPanel = New-Object System.Windows.Controls.Grid
+$script:addSavingPanel = $addSavingPanel
+$addSavingPanel.Visibility = 'Collapsed'
+$savingPreviewRow = New-Object System.Windows.Controls.RowDefinition
+$savingPreviewRow.Height = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star)
+$savingStatusRow = New-Object System.Windows.Controls.RowDefinition
+$savingStatusRow.Height = New-Object System.Windows.GridLength(54)
+$addSavingPanel.RowDefinitions.Add($savingPreviewRow)
+$addSavingPanel.RowDefinitions.Add($savingStatusRow)
+[System.Windows.Controls.Grid]::SetRow($addSavingPanel, 1)
+$addLayout.Children.Add($addSavingPanel) | Out-Null
 
-$addScroll.Content = $addStack
-$addPanel.Child = $addScroll
+$savingPreview = New-Object System.Windows.Controls.StackPanel
+$savingPreview.HorizontalAlignment = 'Center'
+$savingPreview.VerticalAlignment = 'Center'
+[System.Windows.Controls.Grid]::SetRow($savingPreview, 0)
+$addSavingPanel.Children.Add($savingPreview) | Out-Null
+
+$addSavingVisualHost = New-Object System.Windows.Controls.Border
+$script:addSavingVisualHost = $addSavingVisualHost
+$addSavingVisualHost.Width = 110
+$addSavingVisualHost.Height = 110
+$addSavingVisualHost.HorizontalAlignment = 'Center'
+$savingPreview.Children.Add($addSavingVisualHost) | Out-Null
+
+$addSavingTitleText = New-Object System.Windows.Controls.TextBlock
+$script:addSavingTitleText = $addSavingTitleText
+$addSavingTitleText.Foreground = [System.Windows.Media.Brushes]::White
+$addSavingTitleText.FontSize = 17
+$addSavingTitleText.FontWeight = 'SemiBold'
+$addSavingTitleText.TextAlignment = 'Center'
+$addSavingTitleText.TextTrimming = 'CharacterEllipsis'
+$addSavingTitleText.Width = 420
+$addSavingTitleText.Margin = '0,4,0,0'
+$savingPreview.Children.Add($addSavingTitleText) | Out-Null
+
+$addSavingStatusText = New-Object System.Windows.Controls.TextBlock
+$script:addSavingStatusText = $addSavingStatusText
+$addSavingStatusText.Foreground = [System.Windows.Media.Brushes]::White
+$addSavingStatusText.FontSize = 14
+$addSavingStatusText.FontWeight = 'Bold'
+$addSavingStatusText.TextAlignment = 'Center'
+$addSavingStatusText.TextWrapping = 'Wrap'
+$addSavingStatusText.VerticalAlignment = 'Bottom'
+[System.Windows.Controls.Grid]::SetRow($addSavingStatusText, 1)
+$addSavingPanel.Children.Add($addSavingStatusText) | Out-Null
+
+$addBottomOrnament = New-DetailOrnament
+$addBottomOrnament.RenderTransformOrigin = '0.5,0.5'
+$addBottomOrnament.RenderTransform = New-Object System.Windows.Media.ScaleTransform(1, -1)
+[System.Windows.Controls.Grid]::SetRow($addBottomOrnament, 2)
+$addPanel.Children.Add($addBottomOrnament) | Out-Null
+
 $root.Children.Add($addPanel) | Out-Null
 [System.Windows.Controls.Panel]::SetZIndex($addPanel, 4000)
 
@@ -3209,12 +3748,12 @@ function Add-BackgroundOptionRow($entry) {
     $select = New-Object System.Windows.Controls.Button
     $select.Content = [string]$entry.name
     $select.ToolTip = [string]$entry.name
-    $select.Tag = [string]$entry.file
+    $select.Tag = [string]$entry.id
     $select.HorizontalContentAlignment = 'Left'
     $select.Padding = '10,0,10,0'
     $select.Height = 36
 
-    if ([string]$entry.file -eq [string]$script:editBackgroundFile) {
+    if ([string]$entry.id -eq [string]$script:editProfileId) {
         $select.FontWeight = 'Bold'
     }
 
@@ -3224,8 +3763,7 @@ function Add-BackgroundOptionRow($entry) {
         if (-not $script:editMode) { return }
 
         Push-EditUndo
-        $script:editBackgroundFile = [string]$s.Tag
-        Render-Background
+        Set-Profile ([string]$s.Tag) $true
         Render-BackgroundChoices
         $script:backgroundPanel.Visibility = 'Collapsed'
     })
@@ -3233,7 +3771,7 @@ function Add-BackgroundOptionRow($entry) {
     [System.Windows.Controls.Grid]::SetColumn($select, 0)
     $row.Children.Add($select) | Out-Null
 
-    if (-not [bool]$entry.protected) {
+    if ($false) {
         $delete = New-Object System.Windows.Controls.Button
         $delete.Content = 'X'
         $delete.ToolTip = 'Delete Background'
@@ -3334,11 +3872,11 @@ function Render-BackgroundChoices {
         $script:backgroundPanel.Visibility = 'Collapsed'
     })
 
-    $script:backgroundList.Children.Add($browse) | Out-Null
+    $browse.Visibility = 'Collapsed'
 
-    $registry = Read-BackgroundRegistry
+    $registry = Read-ProfileRegistry
 
-    foreach ($entry in @($registry.backgrounds)) {
+    foreach ($entry in @($registry.profiles)) {
         if ($script:pendingDeletedBackgroundIds.Contains([string]$entry.id)) {
             continue
         }
@@ -3508,6 +4046,7 @@ $detailSave.Add_Click({
     $task.title = $title
     $task.description = $script:detailDescriptionBox.Text.Trim()
     $task.icon = [string]$script:detailSelectedIcon
+    $task | Add-Member -NotePropertyName badgeColor -NotePropertyValue (Get-DominantIconColor ([string]$task.icon)) -Force
     Save-Tasks
     
     Render-Tasks
@@ -3524,6 +4063,7 @@ $editButton.Add_Click({
     if (-not $script:editMode) {
         $script:editSnapshot = Copy-JsonObject $script:area
         $script:editWorkingArea = Copy-JsonObject $script:area
+        $script:editProfileId = [string]$script:config.profile
         $script:editSnapshotBackgroundFile = [string]$script:config.background.file
         $script:editBackgroundFile = [string]$script:config.background.file
         $script:editSnapshotBackgroundScale = [double]$script:config.background.scale
@@ -3546,6 +4086,7 @@ $editButton.Add_Click({
         Set-EditButtonVisual $true
         $script:clearButton.Visibility = 'Visible'
         $script:borderToggle.Visibility = 'Visible'
+        $script:startupToggle.Visibility = 'Visible'
         $script:cancelEditButton.Visibility = 'Visible'
         $script:backgroundButton.Visibility = 'Visible'
         $script:gridButton.Visibility = 'Visible'
@@ -3580,9 +4121,10 @@ $editButton.Add_Click({
     $script:config.background.offsetY = [Math]::Round([double]$script:editBackgroundOffsetY, 1)
     $script:config.buttons.addX = $script:editAddX
     $script:config.buttons.addY = $script:editAddY
+    $script:config.profile = [string]$script:editProfileId
     $script:config.icons.columns = [int]$script:editGridColumns
-    Commit-BackgroundEdits
     Save-Config
+    Save-ActiveProfileState
 
     $script:editMode = $false
     $script:editSnapshot = $null
@@ -3593,6 +4135,7 @@ $editButton.Add_Click({
     $script:undoButton.Visibility = 'Collapsed'
     $script:clearButton.Visibility = 'Collapsed'
     $script:borderToggle.Visibility = 'Collapsed'
+    $script:startupToggle.Visibility = 'Collapsed'
     $script:cancelEditButton.Visibility = 'Collapsed'
     $script:backgroundButton.Visibility = 'Collapsed'
     $script:gridButton.Visibility = 'Collapsed'
@@ -3621,6 +4164,7 @@ $undoButton.Add_Click({
 
     $checkpoint = $script:editUndoStack.Pop()
     $script:editWorkingArea = Copy-JsonObject $checkpoint.area
+    $script:editProfileId = [string]$checkpoint.profileId
     $script:editBackgroundFile = [string]$checkpoint.backgroundFile
     $script:editBackgroundScale = [double]$checkpoint.backgroundScale
     $script:editBackgroundOffsetX = [double]$checkpoint.backgroundOffsetX
@@ -3646,24 +4190,11 @@ $clearButton.Add_Click({
 
     Push-EditUndo
 
-    $defaultBackground = Get-DefaultBackground
-    $defaultBackgroundFile = [string]$defaultBackground.file
-    $useDefaultArea = -not [string]::IsNullOrWhiteSpace($defaultBackgroundFile)
-
-    if ($useDefaultArea) {
-        $script:editWorkingArea = Read-DefaultArea
-    }
-    else {
-        $script:editWorkingArea = New-FactoryArea
-    }
-
-    $script:editBackgroundFile = $defaultBackgroundFile
-    $script:editBackgroundScale = 1.0
-    $script:editBackgroundOffsetX = 0.0
-    $script:editBackgroundOffsetY = 0.0
-    $script:editAddX = $null
-    $script:editAddY = $null
-    $script:editGridColumns = 3
+    $profile = Get-Profile ([string]$script:editProfileId)
+    $script:editWorkingArea = Copy-JsonObject $profile.defaults.area
+    $script:editAddX = [double]$profile.defaults.addX
+    $script:editAddY = [double]$profile.defaults.addY
+    $script:config.buttons.addSize = [double]$profile.defaults.addSize
 
     Update-EditButtons
     Render-Area
@@ -3737,6 +4268,28 @@ $borderToggle.Add_Click({
     Update-EditButtons
     Render-Area
     Render-EditorNodes
+})
+
+$startupToggle.Add_Click({
+    if (-not $script:editMode) { return }
+    try {
+        if (Test-StartupEnabled) {
+            Disable-Startup
+        }
+        else {
+            Enable-Startup
+        }
+        Update-StartupButton
+    }
+    catch {
+        [System.Windows.MessageBox]::Show(
+            'The Windows startup setting could not be changed.',
+            'Startup Setting',
+            [System.Windows.MessageBoxButton]::OK,
+            [System.Windows.MessageBoxImage]::Error
+        ) | Out-Null
+        Update-StartupButton
+    }
 })
 
 $cancelEditButton.Add_Click({
@@ -3837,7 +4390,9 @@ $addButton.Add_Click({
     Open-AddTaskPanel
 })
 
-$createButton.Add_Click({
+$createButton.Add_PreviewMouseLeftButtonUp({
+    param($s, $e)
+    $e.Handled = $true
     Create-NewTask
 })
 

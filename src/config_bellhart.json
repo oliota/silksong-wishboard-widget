@@ -1,11 +1,10 @@
 {
     "refreshSeconds":  60,
-    "profile":  "bonebotton",
     "widget":  {
-                   "width":  477,
-                   "height":  513,
-                   "left":  1410,
-                   "top":  483,
+                   "width":  488,
+                   "height":  526,
+                   "left":  1450,
+                   "top":  488,
                    "topmost":  true,
                    "designWidth":  520,
                    "designHeight":  560,
@@ -16,12 +15,12 @@
                                          "workTop":  0,
                                          "workWidth":  1920,
                                          "workHeight":  1032,
-                                         "relativeX":  0.9771,
-                                         "relativeY":  0.9306
+                                         "relativeX":  1,
+                                         "relativeY":  0.9644
                                      }
                },
     "background":  {
-                       "file":  "backgrounds/bg-5279f95be529452c9dfe60505c1c2dc1.png",
+                       "file":  "backgrounds/bg-a14999abb19d41d1bafbb5576e68413a.png",
                        "opacity":  0.82,
                        "stretch":  "Uniform",
                        "scale":  1,
@@ -46,8 +45,8 @@
                     "cancelEditY":  192,
                     "backgroundX":  82,
                     "backgroundY":  192,
-                    "addX":  56,
-                    "addY":  304.1,
+                    "addX":  218,
+                    "addY":  379.7,
                     "opacityX":  178,
                     "opacityY":  8,
                     "addSize":  84,
