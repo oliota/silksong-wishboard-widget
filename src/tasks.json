@@ -12,6 +12,32 @@
                       "badgeColor":  "#FFED8026",
                       "x":  262.2,
                       "y":  286.1
+                  },
+                  {
+                      "id":  "task-4e4cd0c1f0db456890eb0282a32ba48d",
+                      "title":  "aaaa",
+                      "description":  "aaaaaa",
+                      "icon":  "icon-07",
+                      "isNew":  true,
+                      "createdAt":  "2026-08-26T15:26:25.7221605+01:00",
+                      "badge":  "backgrounds/badges/bonebottom_quest_board_badges_generic_0003_1.png",
+                      "label":  "backgrounds/badges/label/bonebottom_quest_board_badges_text_0001_Layer-8.png",
+                      "badgeColor":  "#FF267EED",
+                      "x":  314.2,
+                      "y":  286.1
+                  },
+                  {
+                      "id":  "task-c19b38a0d8a741fa8bfa8421805b34ca",
+                      "title":  "ff",
+                      "description":  "ffffff",
+                      "icon":  "icon-17",
+                      "isNew":  true,
+                      "createdAt":  "2026-08-26T15:32:09.8992723+01:00",
+                      "badge":  "backgrounds/badges/bonebottom_quest_board_badges_grey_0002_4.png",
+                      "label":  "backgrounds/badges/label/bonebottom_quest_board_badges_text_0001_Layer-8.png",
+                      "badgeColor":  "#FFED9C18",
+                      "x":  287,
+                      "y":  331.8
                   }
               ]
 }

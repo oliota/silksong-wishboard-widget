@@ -1,26 +1,114 @@
 {
-  "icons": [
-    { "id": "icon-01", "file": "icon-01.png", "color": "#70ED26" },
-    { "id": "icon-02", "file": "icon-02.png", "color": "#EDA126" },
-    { "id": "icon-03", "file": "icon-03.png", "color": "#ED2626" },
-    { "id": "icon-04", "file": "icon-04.png", "color": "#D3ED26" },
-    { "id": "icon-05", "file": "icon-05.png", "color": "#ED2A24" },
-    { "id": "icon-06", "file": "icon-06.png", "color": "#ED269F" },
-    { "id": "icon-07", "file": "icon-07.png", "color": "#267EED" },
-    { "id": "icon-08", "file": "icon-08.png", "color": "#264BED" },
-    { "id": "icon-09", "file": "icon-09.png", "color": "#ED7926" },
-    { "id": "icon-10", "file": "icon-10.png", "color": "#ED9126" },
-    { "id": "icon-11", "file": "icon-11.png", "color": "#ED2A26" },
-    { "id": "icon-12", "file": "icon-12.png", "color": "#ED6A26" },
-    { "id": "icon-13", "file": "icon-13.png", "color": "#ED6A26" },
-    { "id": "icon-14", "file": "icon-14.png", "color": "#ED7426" },
-    { "id": "icon-15", "file": "icon-15.png", "color": "#ED8026" },
-    { "id": "icon-16", "file": "icon-16.png", "color": "#ED2626" },
-    { "id": "icon-17", "file": "icon-17.png", "color": "#ED9C18" },
-    { "id": "icon-18", "file": "icon-18.png", "color": "#2626ED" },
-    { "id": "icon-19", "file": "icon-19.png", "color": "#2697ED" },
-    { "id": "icon-20", "file": "icon-20.png", "color": "#ED2E26" },
-    { "id": "icon-21", "file": "icon-21.png", "color": "#ED266D" },
-    { "id": "icon-22", "file": "icon-22.png", "color": "#ED2626" }
-  ]
+    "icons":  [
+                  {
+                      "id":  "icon-01",
+                      "file":  "icon-01.png",
+                      "color":  "#008000"
+                  },
+                  {
+                      "id":  "icon-02",
+                      "file":  "icon-02.png",
+                      "color":  "#EDA126"
+                  },
+                  {
+                      "id":  "icon-03",
+                      "file":  "icon-03.png",
+                      "color":  "#ED2626"
+                  },
+                  {
+                      "id":  "icon-04",
+                      "file":  "icon-04.png",
+                      "color":  "#D3ED26"
+                  },
+                  {
+                      "id":  "icon-05",
+                      "file":  "icon-05.png",
+                      "color":  "#ED2A24"
+                  },
+                  {
+                      "id":  "icon-06",
+                      "file":  "icon-06.png",
+                      "color":  "#ED269F"
+                  },
+                  {
+                      "id":  "icon-07",
+                      "file":  "icon-07.png",
+                      "color":  "#267EED"
+                  },
+                  {
+                      "id":  "icon-08",
+                      "file":  "icon-08.png",
+                      "color":  "#264BED"
+                  },
+                  {
+                      "id":  "icon-09",
+                      "file":  "icon-09.png",
+                      "color":  "#ED7926"
+                  },
+                  {
+                      "id":  "icon-10",
+                      "file":  "icon-10.png",
+                      "color":  "#ED9126"
+                  },
+                  {
+                      "id":  "icon-11",
+                      "file":  "icon-11.png",
+                      "color":  "#ED2A26"
+                  },
+                  {
+                      "id":  "icon-12",
+                      "file":  "icon-12.png",
+                      "color":  "#ED6A26"
+                  },
+                  {
+                      "id":  "icon-13",
+                      "file":  "icon-13.png",
+                      "color":  "#ED6A26"
+                  },
+                  {
+                      "id":  "icon-14",
+                      "file":  "icon-14.png",
+                      "color":  "#ED7426"
+                  },
+                  {
+                      "id":  "icon-15",
+                      "file":  "icon-15.png",
+                      "color":  "#ED8026"
+                  },
+                  {
+                      "id":  "icon-16",
+                      "file":  "icon-16.png",
+                      "color":  "#ED2626"
+                  },
+                  {
+                      "id":  "icon-17",
+                      "file":  "icon-17.png",
+                      "color":  "#ED9C18"
+                  },
+                  {
+                      "id":  "icon-18",
+                      "file":  "icon-18.png",
+                      "color":  "#2626ED"
+                  },
+                  {
+                      "id":  "icon-19",
+                      "file":  "icon-19.png",
+                      "color":  "#2697ED"
+                  },
+                  {
+                      "id":  "icon-20",
+                      "file":  "icon-20.png",
+                      "color":  "#ED2E26"
+                  },
+                  {
+                      "id":  "icon-21",
+                      "file":  "icon-21.png",
+                      "color":  "#ED266D"
+                  },
+                  {
+                      "id":  "icon-22",
+                      "file":  "icon-22.png",
+                      "color":  "#ED2626"
+                  }
+              ]
 }

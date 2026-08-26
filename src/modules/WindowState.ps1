@@ -260,13 +260,7 @@ function Apply-Config {
     [System.Windows.Controls.Canvas]::SetTop($script:clearButton, $editY)
     [System.Windows.Controls.Canvas]::SetLeft($script:borderToggle, 192.0)
     [System.Windows.Controls.Canvas]::SetTop($script:borderToggle, $editY)
-    [System.Windows.Controls.Canvas]::SetLeft($script:cancelEditButton, 242.0)
-    [System.Windows.Controls.Canvas]::SetTop($script:cancelEditButton, $editY)
-    [System.Windows.Controls.Canvas]::SetLeft($script:backgroundButton, 292.0)
-    [System.Windows.Controls.Canvas]::SetTop($script:backgroundButton, $editY)
-    [System.Windows.Controls.Canvas]::SetLeft($script:gridButton, 342.0)
-    [System.Windows.Controls.Canvas]::SetTop($script:gridButton, $editY)
-    [System.Windows.Controls.Canvas]::SetLeft($script:startupToggle, 392.0)
+    [System.Windows.Controls.Canvas]::SetLeft($script:startupToggle, 292.0)
     [System.Windows.Controls.Canvas]::SetTop($script:startupToggle, $editY - 10.0)
 
     $script:opacitySlider.Visibility = if ($script:editMode) { 'Collapsed' } else { 'Visible' }

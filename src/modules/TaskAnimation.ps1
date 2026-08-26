@@ -135,11 +135,11 @@ function Start-TaskPlacementAnimation($task, [double[]]$position, [double]$taskS
                     $state.Completed = $true
                     $state.ArrivalAt = $now
                     $canvas.Children.Remove($movingBadge)
-                    & $completed $task
                     for ($burstIndex = 0; $burstIndex -lt 20; $burstIndex++) {
                         $angle = (($burstIndex / 20.0) * [Math]::PI * 2.0) + (($random.NextDouble() - 0.5) * 0.2)
                         Add-TaskSparkle $canvas $particles $x $y $angle (48 + $random.NextDouble() * 82) (0.75 + $random.NextDouble() * 1.15) (8 + $random.NextDouble() * 12)
                     }
+                    & $completed $task
                 }
             }
 

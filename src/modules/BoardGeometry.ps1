@@ -102,9 +102,6 @@ function Cancel-EditSession {
     $script:clearButton.Visibility = 'Collapsed'
     $script:borderToggle.Visibility = 'Collapsed'
     $script:startupToggle.Visibility = 'Collapsed'
-    $script:cancelEditButton.Visibility = 'Collapsed'
-    $script:backgroundButton.Visibility = 'Collapsed'
-    $script:gridButton.Visibility = 'Collapsed'
     
     $script:backgroundPanel.Visibility = 'Collapsed'
     $script:gridPanel.Visibility = 'Collapsed'

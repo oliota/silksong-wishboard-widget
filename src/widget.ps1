@@ -261,41 +261,12 @@ $borderToggle.FontSize = 8
 $borderToggle.Visibility = 'Collapsed'
 $borderToggle.ToolTip = 'Toggle Border'
 $script:borderToggle = $borderToggle
-$root.Children.Add($borderToggle) | Out-Null
-[System.Windows.Controls.Panel]::SetZIndex($borderToggle, 2000)
 
 $startupToggle = New-RoundButton 'STARTUP OFF' 64
 $startupToggle.FontSize = 7
 $startupToggle.Visibility = 'Collapsed'
 $startupToggle.ToolTip = 'Enable Start with Windows'
 $script:startupToggle = $startupToggle
-$root.Children.Add($startupToggle) | Out-Null
-[System.Windows.Controls.Panel]::SetZIndex($startupToggle, 2000)
-
-$cancelEditButton = New-RoundButton 'CANCEL' 44
-$cancelEditButton.FontSize = 7
-$cancelEditButton.Visibility = 'Collapsed'
-$cancelEditButton.ToolTip = 'Cancel'
-$script:cancelEditButton = $cancelEditButton
-$root.Children.Add($cancelEditButton) | Out-Null
-[System.Windows.Controls.Panel]::SetZIndex($cancelEditButton, 2000)
-
-$backgroundButton = New-RoundButton 'BG' 44
-$backgroundButton.FontSize = 9
-$backgroundButton.Visibility = 'Collapsed'
-$backgroundButton.ToolTip = 'Choose Background'
-$script:backgroundButton = $backgroundButton
-$root.Children.Add($backgroundButton) | Out-Null
-[System.Windows.Controls.Panel]::SetZIndex($backgroundButton, 2000)
-
-
-$gridButton = New-RoundButton 'GRID' 44
-$gridButton.FontSize = 8
-$gridButton.Visibility = 'Collapsed'
-$gridButton.ToolTip = 'Icon Grid'
-$script:gridButton = $gridButton
-$root.Children.Add($gridButton) | Out-Null
-[System.Windows.Controls.Panel]::SetZIndex($gridButton, 2000)
 
 $backgroundPanel = New-Object System.Windows.Controls.Border
 $backgroundPanel.Width = 300
@@ -463,8 +434,6 @@ $gridPreviewScroll.Content = $gridPreview
 $gridStack.Children.Add($gridPreviewScroll) | Out-Null
 
 $gridPanel.Child = $gridStack
-$root.Children.Add($gridPanel) | Out-Null
-
 $detailsPanel = New-Object System.Windows.Controls.Border
 $detailsPanel.Width = [double]$script:config.detail.width
 $detailsPanel.Height = [double]$script:config.detail.height
@@ -1292,15 +1261,12 @@ $editButton.Add_Click({
         $script:clearButton.Visibility = 'Visible'
         $script:borderToggle.Visibility = 'Visible'
         $script:startupToggle.Visibility = 'Visible'
-        $script:cancelEditButton.Visibility = 'Visible'
-        $script:backgroundButton.Visibility = 'Visible'
-        $script:gridButton.Visibility = 'Visible'
-        
         $script:backgroundPanel.Visibility = 'Collapsed'
         $script:gridPanel.Visibility = 'Collapsed'
         $script:taskLayer.IsHitTestVisible = $false
         $script:editorLayer.IsHitTestVisible = $true
         $script:resizeButton.Visibility = 'Collapsed'
+        $script:editButton.Visibility = 'Collapsed'
         $script:opacitySlider.Visibility = 'Collapsed'
         $script:opacityLabel.Visibility = 'Collapsed'
 
@@ -1309,6 +1275,7 @@ $editButton.Add_Click({
         Apply-Config
         Render-Area
         Render-EditorNodes
+        Show-EditSettingsWindow
         return
     }
 
@@ -1342,13 +1309,11 @@ $editButton.Add_Click({
     $script:clearButton.Visibility = 'Collapsed'
     $script:borderToggle.Visibility = 'Collapsed'
     $script:startupToggle.Visibility = 'Collapsed'
-    $script:cancelEditButton.Visibility = 'Collapsed'
-    $script:backgroundButton.Visibility = 'Collapsed'
-    $script:gridButton.Visibility = 'Collapsed'
     $script:backgroundPanel.Visibility = 'Collapsed'
     $script:gridPanel.Visibility = 'Collapsed'
     $script:taskLayer.IsHitTestVisible = $true
     $script:editorLayer.IsHitTestVisible = $false
+    $script:editButton.Visibility = 'Visible'
 
     Apply-Config
 
@@ -1416,25 +1381,6 @@ $clearButton.Add_Click({
     }
 })
 
-$backgroundButton.Add_Click({
-    if (-not $script:editMode) { return }
-    Show-EditSettingsWindow
-})
-
-$gridButton.Add_Click({
-    if (-not $script:editMode) { return }
-
-    if ($script:gridPanel.Visibility -eq 'Visible') {
-        $script:gridPanel.Visibility = 'Collapsed'
-        return
-    }
-
-    $script:backgroundPanel.Visibility = 'Collapsed'
-    $script:columnsBox.Text = [string]$script:editGridColumns
-    Populate-IconGrid $script:gridPreview '' $script:editGridColumns 'preview'
-    $script:gridPanel.Visibility = 'Visible'
-})
-
 $gridClose.Add_Click({
     $script:gridPanel.Visibility = 'Collapsed'
 })
@@ -1486,10 +1432,6 @@ $startupToggle.Add_Click({
         ) | Out-Null
         Update-StartupButton
     }
-})
-
-$cancelEditButton.Add_Click({
-    Cancel-EditSession
 })
 
 $script:addDragActive = $false
