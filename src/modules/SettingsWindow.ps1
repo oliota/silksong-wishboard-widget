@@ -301,7 +301,20 @@ function Show-EditSettingsWindow {
     $layout.RowDefinitions.Add($headerRow) | Out-Null; $layout.RowDefinitions.Add($contentRow) | Out-Null; $card.Child = $layout
     $header = New-Object System.Windows.Controls.Grid; $header.Margin = '24,10,18,0'; [System.Windows.Controls.Grid]::SetRow($header, 0); $layout.Children.Add($header) | Out-Null
     $tab = New-Object System.Windows.Controls.StackPanel; $tab.Width = 320; $tab.HorizontalAlignment = 'Left'; $tabTitle = New-Object System.Windows.Controls.TextBlock; $tabTitle.Text = 'WISH BOARD CONFIGURATION'; $tabTitle.Foreground = [System.Windows.Media.Brushes]::White; $tabTitle.FontSize = 22; $tabTitle.FontWeight = 'SemiBold'; $tabTitle.HorizontalAlignment = 'Center'; $tab.Children.Add($tabTitle) | Out-Null; $tab.Children.Add((New-DecorativeAsset 'backgrounds/Controller_Dialogue_0001_bot.png' 18)) | Out-Null; $header.Children.Add($tab) | Out-Null
-    $header.Add_MouseLeftButtonDown({ param($s, $e); if ($e.LeftButton -eq [System.Windows.Input.MouseButtonState]::Pressed) { $settingsWindow.DragMove() } }.GetNewClosure())
+    $header.Add_PreviewMouseLeftButtonDown({
+        param($s, $e)
+
+        $source = $e.OriginalSource
+        while ($null -ne $source -and $source -is [System.Windows.DependencyObject]) {
+            if ($source -is [System.Windows.Controls.Button]) { return }
+            $source = [System.Windows.Media.VisualTreeHelper]::GetParent($source)
+        }
+
+        if ($e.LeftButton -eq [System.Windows.Input.MouseButtonState]::Pressed) {
+            $e.Handled = $true
+            $settingsWindow.DragMove()
+        }
+    }.GetNewClosure())
     $close = New-RoundButton 'CANCEL' 30; $close.Width = 86; $close.HorizontalAlignment = 'Right'; $close.VerticalAlignment = 'Top'; $close.ToolTip = 'Cancel edit mode'; $header.Children.Add($close) | Out-Null
     $save = New-RoundButton 'SAVE' 30; $save.Width = 74; $save.Margin = '0,0,92,0'; $save.HorizontalAlignment = 'Right'; $save.VerticalAlignment = 'Top'; $save.ToolTip = 'Save edit mode'; $header.Children.Add($save) | Out-Null
     $save.Add_Click({ Invoke-EditModeSave }.GetNewClosure())
