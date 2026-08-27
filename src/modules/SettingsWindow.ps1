@@ -301,23 +301,33 @@ function Show-EditSettingsWindow {
     $layout.RowDefinitions.Add($headerRow) | Out-Null; $layout.RowDefinitions.Add($contentRow) | Out-Null; $card.Child = $layout
     $header = New-Object System.Windows.Controls.Grid; $header.Margin = '24,10,18,0'; [System.Windows.Controls.Grid]::SetRow($header, 0); $layout.Children.Add($header) | Out-Null
     $tab = New-Object System.Windows.Controls.StackPanel; $tab.Width = 320; $tab.HorizontalAlignment = 'Left'; $tabTitle = New-Object System.Windows.Controls.TextBlock; $tabTitle.Text = 'WISH BOARD CONFIGURATION'; $tabTitle.Foreground = [System.Windows.Media.Brushes]::White; $tabTitle.FontSize = 22; $tabTitle.FontWeight = 'SemiBold'; $tabTitle.HorizontalAlignment = 'Center'; $tab.Children.Add($tabTitle) | Out-Null; $tab.Children.Add((New-DecorativeAsset 'backgrounds/Controller_Dialogue_0001_bot.png' 18)) | Out-Null; $header.Children.Add($tab) | Out-Null
-    $header.Add_PreviewMouseLeftButtonDown({
-        param($s, $e)
-
-        $source = $e.OriginalSource
-        while ($null -ne $source -and $source -is [System.Windows.DependencyObject]) {
-            if ($source -is [System.Windows.Controls.Button]) { return }
-            $source = [System.Windows.Media.VisualTreeHelper]::GetParent($source)
-        }
-
-        if ($e.LeftButton -eq [System.Windows.Input.MouseButtonState]::Pressed) {
-            $e.Handled = $true
-            $settingsWindow.DragMove()
-        }
-    }.GetNewClosure())
-    $close = New-RoundButton 'CANCEL' 30; $close.Width = 86; $close.HorizontalAlignment = 'Right'; $close.VerticalAlignment = 'Top'; $close.ToolTip = 'Cancel edit mode'; $header.Children.Add($close) | Out-Null
-    $save = New-RoundButton 'SAVE' 30; $save.Width = 74; $save.Margin = '0,0,92,0'; $save.HorizontalAlignment = 'Right'; $save.VerticalAlignment = 'Top'; $save.ToolTip = 'Save edit mode'; $header.Children.Add($save) | Out-Null
+    $close = New-RoundButton 'CANCEL' 30; $close.Width = 86; $close.Margin = '0,0,44,0'; $close.HorizontalAlignment = 'Right'; $close.VerticalAlignment = 'Top'; $close.ToolTip = 'Cancel edit mode'; $header.Children.Add($close) | Out-Null
+    $save = New-RoundButton 'SAVE' 30; $save.Width = 74; $save.Margin = '0,0,136,0'; $save.HorizontalAlignment = 'Right'; $save.VerticalAlignment = 'Top'; $save.ToolTip = 'Save edit mode'; $header.Children.Add($save) | Out-Null
     $save.Add_Click({ Invoke-EditModeSave }.GetNewClosure())
+    $dragHandle = New-RoundButton '' 30
+    $dragHandle.ToolTip = 'Drag window'
+    $dragHandle.Cursor = [System.Windows.Input.Cursors]::SizeAll
+    $dragView = New-Object System.Windows.Controls.Viewbox
+    $dragView.Width = 17
+    $dragView.Height = 17
+    $dragPath = New-Object System.Windows.Shapes.Path
+    $dragPath.Stroke = [System.Windows.Media.Brushes]::White
+    $dragPath.StrokeThickness = 1.6
+    $dragPath.StrokeStartLineCap = 'Round'
+    $dragPath.StrokeEndLineCap = 'Round'
+    $dragPath.StrokeLineJoin = 'Round'
+    $dragPath.Data = [System.Windows.Media.Geometry]::Parse('M2,8.5 L15,8.5 M2,8.5 L5,5.5 M2,8.5 L5,11.5 M15,8.5 L12,5.5 M15,8.5 L12,11.5 M8.5,2 L8.5,15 M8.5,2 L5.5,5 M8.5,2 L11.5,5 M8.5,15 L5.5,12 M8.5,15 L11.5,12')
+    $dragView.Child = $dragPath
+    $dragHandle.Content = $dragView
+    $dragHandle.HorizontalAlignment = 'Right'
+    $dragHandle.VerticalAlignment = 'Top'
+    $dragHandle.Add_PreviewMouseLeftButtonDown({
+        param($s, $e)
+        $e.Handled = $true
+        $settingsWindow.DragMove()
+    }.GetNewClosure())
+    $header.Children.Add($dragHandle) | Out-Null
+    [System.Windows.Controls.Panel]::SetZIndex($dragHandle, 10)
     $tabs = New-Object System.Windows.Controls.TabControl; $tabs.Margin = '20,0,20,20'; $tabs.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FF101014'); $tabs.Foreground = [System.Windows.Media.Brushes]::White; $tabs.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FF55555F'); $tabs.ItemContainerStyle = New-SettingsTabStyle; [System.Windows.Controls.Grid]::SetRow($tabs, 1); $layout.Children.Add($tabs) | Out-Null
     $profilesTab = New-Object System.Windows.Controls.TabItem; $profilesTab.Header = 'WISH BOARD'; $profilesTab.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FF202026'); $profilesTab.Foreground = [System.Windows.Media.Brushes]::White; $profileGrid = New-Object System.Windows.Controls.Grid; $profileGrid.Margin = '10'; for ($column = 0; $column -lt 3; $column++) { $definition = New-Object System.Windows.Controls.ColumnDefinition; $definition.Width = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star); $profileGrid.ColumnDefinitions.Add($definition) | Out-Null }; $registry = Read-ProfileRegistry; $definitions = @([pscustomobject]@{ Id = 'bonebotton'; Title = 'Bone Botton'; Background = 'backgrounds/settings/bonebotton-card.png' }, [pscustomobject]@{ Id = 'bellhart'; Title = 'Bellhart'; Background = 'backgrounds/settings/bellhart-card.png' }, [pscustomobject]@{ Id = 'songclave'; Title = 'Songclave'; Background = 'backgrounds/settings/songclave-card.png' }); for ($index = 0; $index -lt $definitions.Count; $index++) { $definition = $definitions[$index]; $profile = @($registry.profiles | Where-Object { [string]$_.id -eq $definition.Id } | Select-Object -First 1)[0]; if ($null -eq $profile) { continue }; $profileCard = New-WishBoardProfileCard $profile $definition.Title $definition.Background; [System.Windows.Controls.Grid]::SetColumn($profileCard, $index); $profileGrid.Children.Add($profileCard) | Out-Null }; $tabs.Items.Add($profilesTab) | Out-Null
     $iconsTab = New-Object System.Windows.Controls.TabItem; $iconsTab.Header = 'WISH ICONS'; $iconsTab.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FF202026'); $iconsTab.Foreground = [System.Windows.Media.Brushes]::White; $iconsContent = New-Object System.Windows.Controls.StackPanel; $iconsContent.Margin = '10'; Render-IconCatalogEditor $iconsContent; $tabs.Items.Add($iconsTab) | Out-Null
@@ -406,10 +416,40 @@ function Show-EditSettingsWindow {
     $calendarConfirm.Margin = '0,8,0,8'
     $calendarConfirm.Visibility = 'Collapsed'
     $calendarPanel.Children.Add($calendarConfirm) | Out-Null
+    $calendarFetchReturn = New-RoundButton 'GET CALENDAR RETURN' 100
+    $calendarFetchReturn.Width = 190
+    $calendarFetchReturn.Height = 36
+    $calendarFetchReturn.Margin = '0,8,0,8'
+    $calendarFetchReturn.Visibility = 'Collapsed'
+    $calendarFetchReturn.IsEnabled = $false
+    $calendarPanel.Children.Add($calendarFetchReturn) | Out-Null
     $calendarStatus = New-Object System.Windows.Controls.TextBlock
     $calendarStatus.Foreground = [System.Windows.Media.Brushes]::White
     $calendarStatus.TextWrapping = 'Wrap'
     $calendarPanel.Children.Add($calendarStatus) | Out-Null
+    $calendarReturnViewer = New-Object System.Windows.Controls.TextBox
+    $calendarReturnViewer.Height = 110
+    $calendarReturnViewer.IsReadOnly = $true
+    $calendarReturnViewer.TextWrapping = 'Wrap'
+    $calendarReturnViewer.VerticalScrollBarVisibility = 'Auto'
+    $calendarReturnViewer.HorizontalScrollBarVisibility = 'Auto'
+    $calendarReturnViewer.Foreground = [System.Windows.Media.Brushes]::White
+    $calendarReturnViewer.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FF08080B')
+    $calendarReturnViewer.BorderBrush = [System.Windows.Media.Brushes]::White
+    $calendarReturnViewer.Visibility = 'Collapsed'
+    $calendarPanel.Children.Add($calendarReturnViewer) | Out-Null
+    $calendarResultPath = Join-Path $base 'google-calendar-auth-result.json'
+    $script:calendarOAuthResultPath = $calendarResultPath
+    $script:calendarOAuthInstalled = $null
+    $script:calendarFetchReturn = $calendarFetchReturn
+    $script:calendarStatus = $calendarStatus
+    if (Test-Path -LiteralPath $calendarResultPath) {
+        $calendarFetchReturn.Visibility = 'Visible'
+        $calendarFetchReturn.IsEnabled = $true
+        $calendarReturnViewer.Text = [System.IO.File]::ReadAllText($calendarResultPath)
+        $calendarReturnViewer.Visibility = 'Visible'
+        $calendarStatus.Text = 'Authorization response found. Click GET CALENDAR RETURN to save the connection.'
+    }
     $calendarNext.Tag = 1
     $calendarNext.Add_Click({
         param($s, $e)
@@ -432,6 +472,59 @@ function Show-EditSettingsWindow {
         try {
             $jsonText = [string]$calendarTextArea.Text
             if ([string]::IsNullOrWhiteSpace($jsonText)) { throw 'Paste the credentials JSON into the text area.' }
+            $credential = $jsonText | ConvertFrom-Json
+            if ($null -eq $credential.installed) { throw 'The JSON must contain an installed credentials object.' }
+            $installed = $credential.installed
+            $clientId = [string]$installed.client_id
+            $clientSecret = [string]$installed.client_secret
+            if ([string]::IsNullOrWhiteSpace($clientId) -or [string]::IsNullOrWhiteSpace($clientSecret)) { throw 'The credentials file has no client_id or client_secret.' }
+
+            $resultPath = Join-Path $base 'google-calendar-auth-result.json'
+            $urlPath = "$resultPath.url"
+            Remove-Item -LiteralPath $resultPath,$urlPath -Force -ErrorAction SilentlyContinue
+            $script:calendarOAuthResultPath = $resultPath
+            $script:calendarOAuthInstalled = $credential.installed
+            $helperPath = Join-Path $base 'google-calendar-auth.ps1'
+            $helperArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $helperPath, '-ClientId', $clientId, '-ClientSecret', $clientSecret, '-ProjectId', ([string]$installed.project_id), '-AuthUri', ([string]$installed.auth_uri), '-TokenUri', ([string]$installed.token_uri), '-ResultPath', $resultPath)
+            Start-Process -FilePath 'powershell.exe' -ArgumentList $helperArgs -WindowStyle Hidden | Out-Null
+            Write-WidgetLog 'OAUTH' 'External Google authentication process started.'
+            $calendarStatus.Text = 'Authorize access in the browser...'
+            $calendarImport.IsEnabled = $false
+            $authState = [pscustomobject]@{ Opened = $false }
+            $oauthPollTimer = New-Object System.Windows.Threading.DispatcherTimer
+            $oauthPollTimer.Interval = [TimeSpan]::FromMilliseconds(250)
+            $oauthPollTimer.Add_Tick({
+                try {
+                    if (-not $authState.Opened -and (Test-Path -LiteralPath $urlPath)) {
+                        $authUrl = [System.IO.File]::ReadAllText($urlPath)
+                        Remove-Item -LiteralPath $urlPath -Force -ErrorAction SilentlyContinue
+                        $authState.Opened = $true
+                        & "$env:WINDIR\System32\rundll32.exe" 'url.dll,FileProtocolHandler' $authUrl
+                        Write-WidgetLog 'OAUTH' 'Browser opened by external authentication process.'
+                    }
+                    if (-not (Test-Path -LiteralPath $resultPath)) { return }
+                    $oauthPollTimer.Stop()
+                    $script:calendarFetchReturn.Visibility = 'Visible'
+                    $script:calendarFetchReturn.IsEnabled = $true
+                    $calendarReturnViewer.Text = [System.IO.File]::ReadAllText($resultPath)
+                    $calendarReturnViewer.Visibility = 'Visible'
+                    $script:calendarStatus.Text = 'Authorization response received. Click GET CALENDAR RETURN to save the connection.'
+                    $script:calendarStatus.Foreground = [System.Windows.Media.Brushes]::LightGreen
+                    $calendarImport.IsEnabled = $false
+                }
+                catch {
+                    $oauthPollTimer.Stop()
+                    $message = $_.Exception.Message
+                    Write-WidgetLog 'ERROR' ("External OAuth failed: {0}" -f $_.Exception.ToString())
+                    $script:calendarStatus.Dispatcher.BeginInvoke([Action]{ $script:calendarStatus.Text = 'Authorization failed: ' + $message; $script:calendarStatus.Foreground = [System.Windows.Media.Brushes]::IndianRed; $calendarImport.IsEnabled = $true }) | Out-Null
+                    $calendarImport.IsEnabled = $true
+                }
+            }.GetNewClosure())
+            $oauthPollTimer.Start()
+            return
+
+            $jsonText = [string]$calendarTextArea.Text
+            if ([string]::IsNullOrWhiteSpace($jsonText)) { throw 'Paste the credentials JSON into the text area.' }
             [System.IO.File]::WriteAllText($savedCredentialPath, $jsonText, [System.Text.UTF8Encoding]::new($false))
             $credential = @(Get-Content -LiteralPath $savedCredentialPath | ConvertFrom-Json)[0]
             if ($null -eq $credential -or $null -eq $credential.installed) { throw 'The JSON must contain an installed credentials object.' }
@@ -440,32 +533,64 @@ function Show-EditSettingsWindow {
             $clientSecret = [string]$installed.client_secret
             if ([string]::IsNullOrWhiteSpace([string]$clientId) -or [string]::IsNullOrWhiteSpace([string]$clientSecret)) { throw 'The credentials file has no client_id or client_secret.' }
             $port = Get-Random -Minimum 49152 -Maximum 65535
-            $redirectUri = 'http://localhost:' + $port + '/'
+            $redirectUri = 'http://127.0.0.1:' + $port + '/'
             $authUri = [string]$installed.auth_uri
             $tokenUri = [string]$installed.token_uri
             $listener = New-Object System.Net.HttpListener
             $listener.Prefixes.Add($redirectUri)
             $listener.Start()
+            $script:oauthListener = $listener
+            Write-WidgetLog 'OAUTH' ("Listening for Google callback at {0}." -f $redirectUri)
             $state = [Guid]::NewGuid().ToString('N')
             $scope = 'https://www.googleapis.com/auth/calendar.readonly'
             $authUrl = $authUri + '?client_id=' + [Uri]::EscapeDataString($clientId) + '&redirect_uri=' + [Uri]::EscapeDataString($redirectUri) + '&response_type=code&scope=' + [Uri]::EscapeDataString($scope) + '&access_type=offline&prompt=consent&state=' + $state
             $calendarStatus.Text = 'Authorize access in the browser...'
             $calendarImport.IsEnabled = $false
-            & "$env:WINDIR\System32\rundll32.exe" 'url.dll,FileProtocolHandler' $authUrl
-            $listener.BeginGetContext({
-                param($result)
+            $oauthPreviousWindowTopmost = [bool]$script:window.Topmost
+            $oauthPreviousSettingsTopmost = $false
+            if ($script:editSettingsWindow -is [System.Windows.Window]) {
+                $oauthPreviousSettingsTopmost = [bool]$script:editSettingsWindow.Topmost
+                $script:editSettingsWindow.Topmost = $false
+            }
+            $script:window.Topmost = $false
+            $oauthTimer = New-Object System.Windows.Threading.DispatcherTimer
+            $oauthTimer.Interval = [TimeSpan]::FromMilliseconds(200)
+            $script:oauthTimer = $oauthTimer
+            $script:oauthContextTask = $script:oauthListener.GetContextAsync()
+            $oauthStartedAt = [DateTime]::UtcNow
+            $oauthTimer.Add_Tick({
                 try {
-                    $context = $listener.EndGetContext($result)
+                    if ($null -eq $script:oauthContextTask) { return }
+                    if (-not $script:oauthContextTask.IsCompleted) {
+                        if (([DateTime]::UtcNow - $oauthStartedAt).TotalSeconds -gt 120) {
+                            throw 'Google callback timed out after 120 seconds.'
+                        }
+                        return
+                    }
+                    if ($script:oauthContextTask.IsFaulted) {
+                        throw $script:oauthContextTask.Exception.InnerException
+                    }
+                    if ($null -eq $script:oauthTimer) { return }
+                    $script:oauthTimer.Stop()
+                    $context = $script:oauthContextTask.GetAwaiter().GetResult()
+                    Write-WidgetLog 'OAUTH' 'Google callback received.'
+                    if ($null -eq $context) {
+                        throw 'Google callback returned no context.'
+                    }
                     $responseText = '<html><body>Google Calendar authorization complete. You may close this window.</body></html>'
                     $bytes = [Text.Encoding]::UTF8.GetBytes($responseText)
                     $context.Response.ContentType = 'text/html; charset=utf-8'
                     $context.Response.ContentLength64 = $bytes.Length
+                    $context.Response.KeepAlive = $false
                     $context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
+                    $context.Response.OutputStream.Close()
                     $context.Response.Close()
+                    Write-WidgetLog 'OAUTH' 'Local callback response sent; processing authorization.'
                     $query = $context.Request.QueryString
                     if ([string]$query['state'] -ne $state) { throw 'OAuth state validation failed.' }
                     $code = [string]$query['code']
                     if ([string]::IsNullOrWhiteSpace($code)) { throw ([string]$query['error']) }
+                    Write-WidgetLog 'OAUTH' 'Authorization code received; requesting token.'
                     $values = New-Object System.Collections.Specialized.NameValueCollection
                     $values.Add('code', $code)
                     $values.Add('client_id', $clientId)
@@ -476,16 +601,92 @@ function Show-EditSettingsWindow {
                     $tokenBytes = $web.UploadValues($tokenUri, 'POST', $values)
                     $tokens = (New-Object System.Web.Script.Serialization.JavaScriptSerializer).DeserializeObject([Text.Encoding]::UTF8.GetString($tokenBytes))
                     if (-not $tokens.ContainsKey('access_token')) { throw 'Google did not return an access token.' }
+                    Write-WidgetLog 'OAUTH' 'Google token received.'
                     $calendarConfig = [pscustomobject]@{ clientId = $clientId; clientSecret = $clientSecret; projectId = [string]$installed.project_id; authUri = $authUri; tokenUri = $tokenUri; redirectUri = $redirectUri; accessToken = [string]$tokens['access_token']; refreshToken = [string]$tokens['refresh_token']; credentialFile = 'google-calendar-credentials.json'; configured = $true }
                     [System.IO.File]::WriteAllText($savedCredentialPath, ($calendarConfig | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
                     $script:config | Add-Member -NotePropertyName googleCalendar -NotePropertyValue $calendarConfig -Force
                     Save-Config
-                    $calendarStatus.Dispatcher.Invoke([Action]{ $calendarStatus.Text = 'Google Calendar connected and saved.'; $calendarStatus.Foreground = [System.Windows.Media.Brushes]::LightGreen; $calendarImport.IsEnabled = $true })
+                    $calendarStatus.Text = 'Google Calendar connected and saved.'
+                    $calendarStatus.Foreground = [System.Windows.Media.Brushes]::LightGreen
+                    $calendarImport.IsEnabled = $true
+                    $script:window.Topmost = $oauthPreviousWindowTopmost
+                    if ($script:editSettingsWindow -is [System.Windows.Window]) { $script:editSettingsWindow.Topmost = $oauthPreviousSettingsTopmost }
                 } catch {
                     $message = $_.Exception.Message
-                    $calendarStatus.Dispatcher.Invoke([Action]{ $calendarStatus.Text = 'Authorization failed: ' + $message; $calendarStatus.Foreground = [System.Windows.Media.Brushes]::IndianRed; $calendarImport.IsEnabled = $true })
-                } finally { $listener.Stop(); $listener.Close() }
-            }, $null) | Out-Null
+                    Write-WidgetLog 'ERROR' ("OAuth failed: {0}" -f $_.Exception.ToString())
+                    $calendarStatus.Text = 'Authorization failed: ' + $message
+                    $calendarStatus.Foreground = [System.Windows.Media.Brushes]::IndianRed
+                    $calendarImport.IsEnabled = $true
+                    $script:window.Topmost = $oauthPreviousWindowTopmost
+                    if ($script:editSettingsWindow -is [System.Windows.Window]) { $script:editSettingsWindow.Topmost = $oauthPreviousSettingsTopmost }
+                } finally {
+                    if ($null -ne $script:oauthTimer) { $script:oauthTimer.Stop(); $script:oauthTimer = $null }
+                    if ($null -ne $script:oauthListener) {
+                        $script:oauthListener.Stop()
+                        $script:oauthListener.Close()
+                        $script:oauthListener = $null
+                    }
+                    $script:oauthContextTask = $null
+                }
+            }.GetNewClosure())
+            $oauthTimer.Start()
+            <#
+            if (-not $asyncResult.AsyncWaitHandle.WaitOne(120000)) {
+                        Write-WidgetLog 'ERROR' 'Google callback timed out after 120 seconds.'
+                        $calendarStatus.Dispatcher.BeginInvoke([Action]{ $calendarStatus.Text = 'Authorization timed out. Try again.'; $calendarStatus.Foreground = [System.Windows.Media.Brushes]::IndianRed; $calendarImport.IsEnabled = $true }) | Out-Null
+                        return
+                    }
+                    $context = $script:oauthListener.EndGetContext($asyncResult)
+                    Write-WidgetLog 'OAUTH' 'Google callback received.'
+                    $responseText = '<html><body>Google Calendar authorization complete. You may close this window.</body></html>'
+                    $bytes = [Text.Encoding]::UTF8.GetBytes($responseText)
+                    $context.Response.ContentType = 'text/html; charset=utf-8'
+                    $context.Response.ContentLength64 = $bytes.Length
+                    $context.Response.KeepAlive = $false
+                    $context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
+                    $context.Response.OutputStream.Flush()
+                    $context.Response.OutputStream.Close()
+                    $context.Response.Close()
+                    Write-WidgetLog 'OAUTH' 'Local callback response sent; processing authorization.'
+                    $query = $context.Request.QueryString
+                    if ([string]$query['state'] -ne $state) { throw 'OAuth state validation failed.' }
+                    $code = [string]$query['code']
+                    if ([string]::IsNullOrWhiteSpace($code)) { throw ([string]$query['error']) }
+                    Write-WidgetLog 'OAUTH' 'Authorization code received; requesting token.'
+                    $values = New-Object System.Collections.Specialized.NameValueCollection
+                    $values.Add('code', $code)
+                    $values.Add('client_id', $clientId)
+                    $values.Add('client_secret', $clientSecret)
+                    $values.Add('redirect_uri', $redirectUri)
+                    $values.Add('grant_type', 'authorization_code')
+                    $web = New-Object System.Net.WebClient
+                    $tokenBytes = $web.UploadValues($tokenUri, 'POST', $values)
+                    $tokens = (New-Object System.Web.Script.Serialization.JavaScriptSerializer).DeserializeObject([Text.Encoding]::UTF8.GetString($tokenBytes))
+                    if (-not $tokens.ContainsKey('access_token')) { throw 'Google did not return an access token.' }
+                    Write-WidgetLog 'OAUTH' 'Google token received.'
+                    $calendarConfig = [pscustomobject]@{ clientId = $clientId; clientSecret = $clientSecret; projectId = [string]$installed.project_id; authUri = $authUri; tokenUri = $tokenUri; redirectUri = $redirectUri; accessToken = [string]$tokens['access_token']; refreshToken = [string]$tokens['refresh_token']; credentialFile = 'google-calendar-credentials.json'; configured = $true }
+                    [System.IO.File]::WriteAllText($savedCredentialPath, ($calendarConfig | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
+                    $script:config | Add-Member -NotePropertyName googleCalendar -NotePropertyValue $calendarConfig -Force
+                    Save-Config
+                    $calendarStatus.Dispatcher.BeginInvoke([Action]{ $calendarStatus.Text = 'Google Calendar connected and saved.'; $calendarStatus.Foreground = [System.Windows.Media.Brushes]::LightGreen; $calendarImport.IsEnabled = $true }) | Out-Null
+                } catch {
+                    $message = $_.Exception.Message
+                    Write-WidgetLog 'ERROR' ("OAuth failed: {0}" -f $_.Exception.ToString())
+                    $calendarStatus.Dispatcher.BeginInvoke([Action]{ $calendarStatus.Text = 'Authorization failed: ' + $message; $calendarStatus.Foreground = [System.Windows.Media.Brushes]::IndianRed; $calendarImport.IsEnabled = $true }) | Out-Null
+                } finally {
+                    if ($null -ne $script:oauthListener) {
+                        $script:oauthListener.Stop()
+                        $script:oauthListener.Close()
+                        $script:oauthListener = $null
+                    }
+                }
+            }.GetNewClosure())
+            $oauthThread.IsBackground = $true
+            $script:oauthThread = $oauthThread
+            $oauthThread.Start()
+            #>
+            & "$env:WINDIR\System32\rundll32.exe" 'url.dll,FileProtocolHandler' $authUrl
+            Write-WidgetLog 'OAUTH' 'Browser opened for Google authorization.'
             $calendarInputs['clientId'].Text = $clientId
             $calendarInputs['clientSecret'].Password = $clientSecret
             $calendarInputs['projectId'].Text = [string]$installed.project_id
@@ -496,19 +697,58 @@ function Show-EditSettingsWindow {
             $calendarStatus.Foreground = [System.Windows.Media.Brushes]::White
         } catch { $calendarStatus.Text = 'Import failed: ' + $_.Exception.Message; $calendarStatus.Foreground = [System.Windows.Media.Brushes]::IndianRed }
     }.GetNewClosure())
-    $calendarConfirm.Add_Click({
-        $path = Join-Path $base 'google-calendar-credentials.json'
+    $calendarFetchReturn.Add_Click({
         try {
-            if (-not (Test-Path -LiteralPath $path)) { throw 'Credentials file not found in the project.' }
-            $check = @(Get-Content -LiteralPath $path | ConvertFrom-Json)[0]
-            if ($null -eq $check -or $null -eq $check.installed -or [string]::IsNullOrWhiteSpace([string]$check.installed.client_id) -or [string]::IsNullOrWhiteSpace([string]$check.installed.client_secret)) { throw 'Invalid credentials structure.' }
-            $script:config.googleCalendar.configured = $true
+            Write-WidgetLog 'OAUTH' 'GET CALENDAR RETURN clicked; reading authorization result.'
+            $calendarStatus.Text = 'Reading Google authorization response...'
+            $resultPath = Join-Path $base 'google-calendar-auth-result.json'
+            if (-not (Test-Path -LiteralPath $resultPath)) { throw 'Google authorization response not found.' }
+            $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
+            $calendarReturnViewer.Text = $result | ConvertTo-Json -Depth 10
+            $calendarReturnViewer.Visibility = 'Visible'
+            if (-not [bool]$result.success) { throw [string]$result.error }
+            if ([string]::IsNullOrWhiteSpace([string]$result.accessToken)) { throw 'Google authorization response has no access token.' }
+            $projectId = [string]$result.projectId
+            if ([string]::IsNullOrWhiteSpace($projectId)) { throw 'Google authorization response has no project ID. Authorize again.' }
+            $credentialPath = Join-Path $base 'google-calendar-credentials.json'
+            $calendarConfig = [pscustomobject]@{
+                clientId = [string]$result.clientId
+                clientSecret = [string]$result.clientSecret
+                projectId = $projectId
+                authUri = [string]$result.authUri
+                tokenUri = [string]$result.tokenUri
+                redirectUri = [string]$result.redirectUri
+                accessToken = [string]$result.accessToken
+                refreshToken = [string]$result.refreshToken
+                credentialFile = 'google-calendar-credentials.json'
+                configured = $true
+            }
+            [System.IO.File]::WriteAllText($credentialPath, ($calendarConfig | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
+            if ($null -eq $script:config) { throw 'Widget configuration is not loaded.' }
+            if ($null -eq $script:config.PSObject.Properties['googleCalendar']) {
+                Add-Member -InputObject $script:config -NotePropertyName googleCalendar -NotePropertyValue $calendarConfig -Force
+            } else {
+                $script:config.googleCalendar = $calendarConfig
+            }
             Save-Config
-            $calendarStatus.Text = 'Connection configuration confirmed.'
+            Remove-Item -LiteralPath $resultPath -Force -ErrorAction SilentlyContinue
+            $script:calendarFetchReturn.IsEnabled = $false
+            $script:calendarFetchReturn.Visibility = 'Collapsed'
+            $calendarStatus.Text = 'Google Calendar connected and saved.'
             $calendarStatus.Foreground = [System.Windows.Media.Brushes]::LightGreen
-        } catch { $calendarStatus.Text = 'Connection failed: ' + $_.Exception.Message; $calendarStatus.Foreground = [System.Windows.Media.Brushes]::IndianRed }
+            Write-WidgetLog 'OAUTH' 'Google Calendar connection saved from returned authorization.'
+        } catch {
+            $message = $_.Exception.Message
+            Write-WidgetLog 'ERROR' ("GET CALENDAR RETURN failed: {0}" -f $message)
+            $calendarStatus.Text = 'Connection failed: ' + $message
+            $calendarStatus.Foreground = [System.Windows.Media.Brushes]::IndianRed
+        }
     }.GetNewClosure())
-    $calendarTab.Content = New-SettingsContentFrame $calendarPanel
+    $calendarScroll = New-Object System.Windows.Controls.ScrollViewer
+    $calendarScroll.VerticalScrollBarVisibility = 'Auto'
+    $calendarScroll.HorizontalScrollBarVisibility = 'Disabled'
+    $calendarScroll.Content = $calendarPanel
+    $calendarTab.Content = New-SettingsContentFrame $calendarScroll
     $tabs.Items.Add($calendarTab) | Out-Null
     $tabs.Add_SelectionChanged({ if ($tabs.SelectedItem -eq $iconsTab) { $columnsBox.Text = [string]$script:editGridColumns; Populate-IconGrid $script:gridPreview '' $script:editGridColumns 'preview' } }.GetNewClosure())
     $close.Add_Click({ Cancel-EditSession })

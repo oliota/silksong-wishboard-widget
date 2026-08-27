@@ -7,12 +7,12 @@
     "widget":  {
                    "width":  527,
                    "height":  568,
-                   "left":  1454,
-                   "top":  428,
+                   "left":  1410,
+                   "top":  388,
                    "topmost":  true,
                    "designWidth":  520,
                    "designHeight":  560,
-                   "opacity":  0.7,
+                   "opacity":  1,
                    "displayAnchor":  {
                                          "deviceName":  "\\\\.\\DISPLAY1",
                                          "workLeft":  0,
@@ -20,7 +20,7 @@
                                          "workWidth":  1920,
                                          "workHeight":  1032,
                                          "relativeX":  1,
-                                         "relativeY":  0.9224
+                                         "relativeY":  0.8362
                                      }
                },
     "background":  {

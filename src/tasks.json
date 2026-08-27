@@ -38,6 +38,19 @@
                       "badgeColor":  "#FF808080",
                       "x":  217.4,
                       "y":  260.2
+                  },
+                  {
+                      "id":  "task-a448bc5a6a3d481e91f419665562eb03",
+                      "title":  "aaa",
+                      "description":  "bbbb",
+                      "icon":  "icon-11",
+                      "isNew":  true,
+                      "createdAt":  "2026-08-27T09:20:18.2576327+01:00",
+                      "badge":  "backgrounds/badges/bonebottom_quest_board_badges_generic_0002_2.png",
+                      "label":  "backgrounds/badges/label/dock_b__0017_text_small1.png",
+                      "badgeColor":  "#FFED2A26",
+                      "x":  270.8,
+                      "y":  260.5
                   }
               ]
 }
