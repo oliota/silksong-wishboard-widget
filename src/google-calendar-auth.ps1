@@ -4,7 +4,8 @@ param(
     [Parameter(Mandatory = $true)][string]$ProjectId,
     [Parameter(Mandatory = $true)][string]$AuthUri,
     [Parameter(Mandatory = $true)][string]$TokenUri,
-    [Parameter(Mandatory = $true)][string]$ResultPath
+    [Parameter(Mandatory = $true)][string]$ResultPath,
+    [string]$SourceCredentialFile = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -20,6 +21,8 @@ try {
     $scope = 'https://www.googleapis.com/auth/calendar.readonly'
     $authUrl = $AuthUri + '?client_id=' + [Uri]::EscapeDataString($ClientId) + '&redirect_uri=' + [Uri]::EscapeDataString($redirectUri) + '&response_type=code&scope=' + [Uri]::EscapeDataString($scope) + '&access_type=offline&prompt=consent&state=' + $state
     [System.IO.File]::WriteAllText("$ResultPath.url", $authUrl, [Text.UTF8Encoding]::new($false))
+    & "$env:WINDIR\System32\rundll32.exe" 'url.dll,FileProtocolHandler' $authUrl
+    Remove-Item -LiteralPath "$ResultPath.url" -Force -ErrorAction SilentlyContinue
     $context = $listener.GetContext()
     $query = $context.Request.QueryString
     $responseText = '<html><body>Google Calendar authorization received. You may close this window.</body></html>'
@@ -56,6 +59,7 @@ try {
         accessToken = [string]$tokens.access_token
         refreshToken = [string]$tokens.refresh_token
         tokenResponse = $tokenResponseText
+        sourceCredentialFile = $SourceCredentialFile
         configured = $true
     }
 }

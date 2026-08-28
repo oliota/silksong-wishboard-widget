@@ -3,3 +3,8 @@ src/widget-error.log
 src/google-calendar-auth-result.json
 client_secret_617323091780-0eroi8peqqttamjg0u742ag5ngbnakgm.apps.googleusercontent.com.json
 google-calendar-credentials.json
+src/google-calendar-client.json
+src/google-calendar-session.json
+src/google-calendar-credentials.json
+src/google-calendar-auth-result.json.url
+client_secret_*.json

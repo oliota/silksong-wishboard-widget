@@ -367,7 +367,12 @@ function Show-EditSettingsWindow {
     $calendarTextArea.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FF08080B')
     $calendarTextArea.BorderBrush = [System.Windows.Media.Brushes]::White
     $savedCredentialPath = Join-Path $base 'google-calendar-credentials.json'
-    if (Test-Path -LiteralPath $savedCredentialPath) { $calendarTextArea.Text = [System.IO.File]::ReadAllText($savedCredentialPath) }
+    if (Test-Path -LiteralPath $savedCredentialPath) {
+        try {
+            $savedCredential = Get-Content -LiteralPath $savedCredentialPath -Raw | ConvertFrom-Json
+            if ($null -ne $savedCredential.installed) { $calendarTextArea.Text = [System.IO.File]::ReadAllText($savedCredentialPath) }
+        } catch {}
+    }
     $calendarPanel.Children.Add($calendarTextArea) | Out-Null
     $calendarLink = New-Object System.Windows.Controls.TextBlock
     $calendarLink.Text = 'https://console.cloud.google.com/'
@@ -504,13 +509,13 @@ function Show-EditSettingsWindow {
                     }
                     if (-not (Test-Path -LiteralPath $resultPath)) { return }
                     $oauthPollTimer.Stop()
-                    $script:calendarFetchReturn.Visibility = 'Visible'
-                    $script:calendarFetchReturn.IsEnabled = $true
-                    $calendarReturnViewer.Text = [System.IO.File]::ReadAllText($resultPath)
-                    $calendarReturnViewer.Visibility = 'Visible'
-                    $script:calendarStatus.Text = 'Authorization response received. Click GET CALENDAR RETURN to save the connection.'
+                    Save-GoogleCalendarAuthorizationResult $resultPath
+                    $script:calendarFetchReturn.Visibility = 'Collapsed'
+                    $script:calendarFetchReturn.IsEnabled = $false
+                    $calendarReturnViewer.Visibility = 'Collapsed'
+                    $script:calendarStatus.Text = 'Google Calendar connected and synchronized.'
                     $script:calendarStatus.Foreground = [System.Windows.Media.Brushes]::LightGreen
-                    $calendarImport.IsEnabled = $false
+                    $calendarImport.IsEnabled = $true
                 }
                 catch {
                     $oauthPollTimer.Stop()
@@ -703,35 +708,7 @@ function Show-EditSettingsWindow {
             $calendarStatus.Text = 'Reading Google authorization response...'
             $resultPath = Join-Path $base 'google-calendar-auth-result.json'
             if (-not (Test-Path -LiteralPath $resultPath)) { throw 'Google authorization response not found.' }
-            $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
-            $calendarReturnViewer.Text = $result | ConvertTo-Json -Depth 10
-            $calendarReturnViewer.Visibility = 'Visible'
-            if (-not [bool]$result.success) { throw [string]$result.error }
-            if ([string]::IsNullOrWhiteSpace([string]$result.accessToken)) { throw 'Google authorization response has no access token.' }
-            $projectId = [string]$result.projectId
-            if ([string]::IsNullOrWhiteSpace($projectId)) { throw 'Google authorization response has no project ID. Authorize again.' }
-            $credentialPath = Join-Path $base 'google-calendar-credentials.json'
-            $calendarConfig = [pscustomobject]@{
-                clientId = [string]$result.clientId
-                clientSecret = [string]$result.clientSecret
-                projectId = $projectId
-                authUri = [string]$result.authUri
-                tokenUri = [string]$result.tokenUri
-                redirectUri = [string]$result.redirectUri
-                accessToken = [string]$result.accessToken
-                refreshToken = [string]$result.refreshToken
-                credentialFile = 'google-calendar-credentials.json'
-                configured = $true
-            }
-            [System.IO.File]::WriteAllText($credentialPath, ($calendarConfig | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
-            if ($null -eq $script:config) { throw 'Widget configuration is not loaded.' }
-            if ($null -eq $script:config.PSObject.Properties['googleCalendar']) {
-                Add-Member -InputObject $script:config -NotePropertyName googleCalendar -NotePropertyValue $calendarConfig -Force
-            } else {
-                $script:config.googleCalendar = $calendarConfig
-            }
-            Save-Config
-            Remove-Item -LiteralPath $resultPath -Force -ErrorAction SilentlyContinue
+            Save-GoogleCalendarAuthorizationResult $resultPath
             $script:calendarFetchReturn.IsEnabled = $false
             $script:calendarFetchReturn.Visibility = 'Collapsed'
             $calendarStatus.Text = 'Google Calendar connected and saved.'
@@ -749,6 +726,7 @@ function Show-EditSettingsWindow {
     $calendarScroll.HorizontalScrollBarVisibility = 'Disabled'
     $calendarScroll.Content = $calendarPanel
     $calendarTab.Content = New-SettingsContentFrame $calendarScroll
+    $calendarTab.Content = New-GoogleCalendarSettingsContent
     $tabs.Items.Add($calendarTab) | Out-Null
     $tabs.Add_SelectionChanged({ if ($tabs.SelectedItem -eq $iconsTab) { $columnsBox.Text = [string]$script:editGridColumns; Populate-IconGrid $script:gridPreview '' $script:editGridColumns 'preview' } }.GetNewClosure())
     $close.Add_Click({ Cancel-EditSession })

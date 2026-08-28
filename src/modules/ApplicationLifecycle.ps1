@@ -67,6 +67,15 @@ function Dispose-ApplicationResources {
         $script:desktopTimer.Stop()
     }
 
+    if ($null -ne $script:calendarTimer) {
+        $script:calendarTimer.Stop()
+    }
+
+    if ($null -ne $script:calendarConnectionTimer) {
+        $script:calendarConnectionTimer.Stop()
+        $script:calendarConnectionTimer = $null
+    }
+
     if ($null -ne $script:tray) {
         $script:tray.Visible = $false
         $script:tray.Dispose()

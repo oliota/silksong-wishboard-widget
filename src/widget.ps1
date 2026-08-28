@@ -38,6 +38,7 @@ $iconColorsPath = Join-Path $base 'icons/colors.json'
 . (Join-Path $base 'modules/TaskAnimation.ps1')
 . (Join-Path $base 'modules/BoardRendering.ps1')
 . (Join-Path $base 'modules/WindowState.ps1')
+. (Join-Path $base 'modules/GoogleCalendar.ps1')
 
 $script:editMode = $false
 $script:draggingEditorNode = $null
@@ -1807,6 +1808,12 @@ $desktopTimer.Add_Tick({
 $script:desktopTimer = $desktopTimer
 $desktopTimer.Start()
 
+$calendarTimer = New-Object System.Windows.Threading.DispatcherTimer
+$calendarTimer.Interval = [TimeSpan]::FromMinutes(1)
+$calendarTimer.Add_Tick({ try { Sync-GoogleCalendar } catch {} })
+$script:calendarTimer = $calendarTimer
+$calendarTimer.Start()
+
 $window.Dispatcher.Add_UnhandledException({
     param($sender, $eventArgs)
 
@@ -1819,6 +1826,7 @@ $window.Dispatcher.Add_UnhandledException({
 $window.Show()
 Ensure-WidgetOnVisibleDisplay $false | Out-Null
 $window.Activate() | Out-Null
+try { Initialize-GoogleCalendar } catch {}
 Write-WidgetLog 'READY' 'Widget window shown; entering dispatcher loop.'
 [System.Windows.Threading.Dispatcher]::Run()
 }
