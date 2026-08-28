@@ -480,25 +480,10 @@ function Sync-GoogleCalendar([bool]$allowDuringEdit = $false, [bool]$useCurrentA
                 $existing[0].description = $description -join [Environment]::NewLine
                 continue
             }
-            $position = @(Find-FreePosition ([double]$script:area.taskSize))
-            if ($position.Count -lt 2) { continue }
-            $task = [pscustomobject][ordered]@{
-                id = 'calendar-' + [string]$event.id
-                externalId = [string]$event.id
-                source = 'googleCalendar'
-                title = if ([string]::IsNullOrWhiteSpace([string]$event.summary)) { 'Google Calendar event' } else { [string]$event.summary }
-                description = $description -join [Environment]::NewLine
-                icon = Get-DefaultTaskIconId
-                isNew = $false
-                createdAt = [DateTime]::Now.ToString('o')
-                x = [Math]::Round([double]$position[0], 1)
-                y = [Math]::Round([double]$position[1], 1)
-            }
-            Add-TaskBadgeMetadata $task $true
-            $script:tasks = @($script:tasks) + @($task)
         }
         Save-Tasks
         Render-Tasks
+        if ($events.Count -gt 0) { Show-CalendarSummons $events }
     } finally {
         $script:calendarSyncActive = $false
     }

@@ -478,6 +478,7 @@ function Delete-DetailItem {
         $deletedId = [string]$task.id
         $script:tasks = @($script:tasks | Where-Object { [string]$_.id -ne $deletedId })
         Save-Tasks
+        Add-PositionToCache ([double]$task.x) ([double]$task.y) ([double]$script:area.taskSize)
         Render-Tasks
         Close-DetailWindow
     }

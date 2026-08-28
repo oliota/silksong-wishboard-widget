@@ -39,16 +39,18 @@ function Stop-TaskPlacementAnimation {
     }
 }
 
-function Start-TaskPlacementAnimation($task, [double[]]$position, [double]$taskSize, [scriptblock]$completed) {
+function Start-TaskPlacementAnimation($task, [double[]]$position, [double]$taskSize, [scriptblock]$completed, $sourceVisual = $null, $durationOverrideSeconds = $null) {
     try {
         Stop-TaskPlacementAnimation
         $durationSeconds = 3.0
         if ($null -ne $script:config.animation -and $null -ne $script:config.animation.placementDurationSeconds) {
             $durationSeconds = [Math]::Max(0.2, [Math]::Min(30.0, [double]$script:config.animation.placementDurationSeconds))
         }
-        $sourcePoint = Get-ScreenPointInDips $script:addSavingVisualHost ([System.Windows.Point]::new(
-            [double]$script:addSavingVisualHost.ActualWidth * 0.5,
-            [double]$script:addSavingVisualHost.ActualHeight * 0.5
+        if ($null -ne $durationOverrideSeconds) { $durationSeconds = [Math]::Max(0.2, [double]$durationOverrideSeconds) }
+        $source = if ($null -ne $sourceVisual) { $sourceVisual } else { $script:addSavingVisualHost }
+        $sourcePoint = Get-ScreenPointInDips $source ([System.Windows.Point]::new(
+            [double]$source.ActualWidth * 0.5,
+            [double]$source.ActualHeight * 0.5
         ))
         $destinationTopLeft = Get-ScreenPointInDips $script:taskLayer ([System.Windows.Point]::new($position[0], $position[1]))
         $destinationBottomRight = Get-ScreenPointInDips $script:taskLayer ([System.Windows.Point]::new($position[0] + $taskSize, $position[1] + $taskSize))
@@ -96,7 +98,7 @@ function Start-TaskPlacementAnimation($task, [double[]]$position, [double]$taskS
         $script:taskAnimationWindow = $overlay
         $overlay.Show()
         $overlay.UpdateLayout()
-        $script:addWindow.Hide()
+        if ($null -eq $sourceVisual -and $null -ne $script:addWindow) { $script:addWindow.Hide() }
 
         $particles = [System.Collections.ArrayList]::new()
         $random = [System.Random]::new()

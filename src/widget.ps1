@@ -24,6 +24,7 @@ $configPath = Join-Path $base 'config.json'
 $areaPath = Join-Path $base 'area.json'
 $defaultAreaPath = Join-Path $base 'default-area.json'
 $tasksPath = Join-Path $base 'tasks.json'
+$positionCachePath = Join-Path $base 'position-cache.json'
 $backgroundsPath = Join-Path $base 'backgrounds.json'
 $backgroundsDir = Join-Path $base 'backgrounds'
 $profilesPath = Join-Path $base 'profiles.json'
@@ -39,6 +40,7 @@ $iconColorsPath = Join-Path $base 'icons/colors.json'
 . (Join-Path $base 'modules/BoardRendering.ps1')
 . (Join-Path $base 'modules/WindowState.ps1')
 . (Join-Path $base 'modules/GoogleCalendar.ps1')
+. (Join-Path $base 'modules/CalendarSummons.ps1')
 
 $script:editMode = $false
 $script:draggingEditorNode = $null
@@ -1767,6 +1769,7 @@ Set-EditButtonVisual $false
 Apply-Config
 Render-Tasks
 Render-EditorNodes
+Initialize-PositionCache
 
 $reloadTimer = New-Object System.Windows.Threading.DispatcherTimer
 $reloadTimer.Interval = [TimeSpan]::FromSeconds([Math]::Max(5, [double]$script:config.refreshSeconds))

@@ -7,8 +7,8 @@
     "widget":  {
                    "width":  527,
                    "height":  568,
-                   "left":  1410,
-                   "top":  388,
+                   "left":  1218,
+                   "top":  268,
                    "topmost":  true,
                    "designWidth":  520,
                    "designHeight":  560,
@@ -19,8 +19,8 @@
                                          "workTop":  0,
                                          "workWidth":  1920,
                                          "workHeight":  1032,
-                                         "relativeX":  1,
-                                         "relativeY":  0.8362
+                                         "relativeX":  0.8744,
+                                         "relativeY":  0.5776
                                      }
                },
     "background":  {

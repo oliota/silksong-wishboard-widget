@@ -14,19 +14,6 @@
                       "y":  211.2
                   },
                   {
-                      "id":  "task-fb2797eed36d4ead8ba804a16e1fcc9a",
-                      "title":  "cc",
-                      "description":  "cccccc",
-                      "icon":  "icon-10",
-                      "isNew":  true,
-                      "createdAt":  "2026-08-26T20:34:39.2470415+01:00",
-                      "badge":  "backgrounds/badges/bonebottom_quest_board_badges_generic_0001_3.png",
-                      "label":  "backgrounds/badges/label/bonebottom_quest_board_badges_text_0003_Layer-10.png",
-                      "badgeColor":  "#FFED9126",
-                      "x":  286.9,
-                      "y":  211.2
-                  },
-                  {
                       "id":  "task-c419ca0d518e494ebbfb9a890a702a99",
                       "title":  "teste",
                       "description":  "teste",
@@ -51,6 +38,34 @@
                       "badgeColor":  "#FFED2A26",
                       "x":  270.8,
                       "y":  260.5
+                  },
+                  {
+                      "id":  "task-871b7dc8caba4b1099f583ac6fe64cbf",
+                      "title":  "ddd",
+                      "description":  "dddd",
+                      "icon":  "icon-07",
+                      "isNew":  true,
+                      "createdAt":  "2026-08-28T17:52:31.9061752+01:00",
+                      "badge":  "backgrounds/badges/bonebottom_quest_board_badges_grey_0005_1.png",
+                      "label":  "backgrounds/badges/label/bonebottom_quest_board_badges_text_0004_Layer-11.png",
+                      "badgeColor":  "#FF267EED",
+                      "x":  199.5,
+                      "y":  172.9
+                  },
+                  {
+                      "id":  "calendar-34qp0jsdc263re5uo1ufk0l5l4",
+                      "externalId":  "34qp0jsdc263re5uo1ufk0l5l4",
+                      "source":  "googleCalendar",
+                      "title":  "jantar",
+                      "description":  "19:00 - 20:00  ",
+                      "icon":  "icon-01",
+                      "isNew":  true,
+                      "createdAt":  "2026-08-28T18:08:27.4325354+01:00",
+                      "badge":  "backgrounds/badges/bonebottom_quest_board_badges_grey_0002_4.png",
+                      "label":  "backgrounds/badges/label/bonebottom_quest_board_badges_text_0000_Layer-7.png",
+                      "badgeColor":  "#FF008000",
+                      "x":  299,
+                      "y":  151.8
                   }
               ]
 }

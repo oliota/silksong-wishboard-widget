@@ -384,6 +384,7 @@ function Commit-NewTask($newTask) {
         Save-Tasks
         Render-Tasks
         Close-AddTaskPanel
+        Request-PositionCacheRefill 2100
     }
     catch {
         $failedTaskId = [string]$newTask.id
