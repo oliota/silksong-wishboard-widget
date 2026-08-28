@@ -1826,7 +1826,16 @@ $window.Dispatcher.Add_UnhandledException({
 $window.Show()
 Ensure-WidgetOnVisibleDisplay $false | Out-Null
 $window.Activate() | Out-Null
-try { Initialize-GoogleCalendar } catch {}
+try {
+    Initialize-GoogleCalendar
+} catch {
+    [System.Windows.MessageBox]::Show(
+        "Google Calendar connection failed:`n`n$($_.Exception.Message)",
+        'Google Calendar',
+        [System.Windows.MessageBoxButton]::OK,
+        [System.Windows.MessageBoxImage]::Error
+    ) | Out-Null
+}
 Write-WidgetLog 'READY' 'Widget window shown; entering dispatcher loop.'
 [System.Windows.Threading.Dispatcher]::Run()
 }

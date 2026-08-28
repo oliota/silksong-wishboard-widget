@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$ClientId,
-    [Parameter(Mandatory = $true)][string]$ClientSecret,
+    [string]$ClientSecret = '',
     [Parameter(Mandatory = $true)][string]$ProjectId,
     [Parameter(Mandatory = $true)][string]$AuthUri,
     [Parameter(Mandatory = $true)][string]$TokenUri,
@@ -14,12 +14,17 @@ $redirectUri = "http://127.0.0.1:$port/"
 $state = [Guid]::NewGuid().ToString('N')
 $listener = New-Object System.Net.HttpListener
 $tokenResponseText = ''
+$random = New-Object byte[] 64
+[System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($random)
+$codeVerifier = [Convert]::ToBase64String($random).TrimEnd('=') -replace '\+', '-' -replace '/', '_'
+$hash = [System.Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::ASCII.GetBytes($codeVerifier))
+$codeChallenge = [Convert]::ToBase64String($hash).TrimEnd('=') -replace '\+', '-' -replace '/', '_'
 
 try {
     $listener.Prefixes.Add($redirectUri)
     $listener.Start()
     $scope = 'https://www.googleapis.com/auth/calendar.readonly'
-    $authUrl = $AuthUri + '?client_id=' + [Uri]::EscapeDataString($ClientId) + '&redirect_uri=' + [Uri]::EscapeDataString($redirectUri) + '&response_type=code&scope=' + [Uri]::EscapeDataString($scope) + '&access_type=offline&prompt=consent&state=' + $state
+    $authUrl = $AuthUri + '?client_id=' + [Uri]::EscapeDataString($ClientId) + '&redirect_uri=' + [Uri]::EscapeDataString($redirectUri) + '&response_type=code&scope=' + [Uri]::EscapeDataString($scope) + '&access_type=offline&prompt=consent&state=' + $state + '&code_challenge=' + [Uri]::EscapeDataString($codeChallenge) + '&code_challenge_method=S256'
     [System.IO.File]::WriteAllText("$ResultPath.url", $authUrl, [Text.UTF8Encoding]::new($false))
     & "$env:WINDIR\System32\rundll32.exe" 'url.dll,FileProtocolHandler' $authUrl
     Remove-Item -LiteralPath "$ResultPath.url" -Force -ErrorAction SilentlyContinue
@@ -39,9 +44,10 @@ try {
     $values = New-Object System.Collections.Specialized.NameValueCollection
     $values.Add('code', $code)
     $values.Add('client_id', $ClientId)
-    $values.Add('client_secret', $ClientSecret)
+    if (-not [string]::IsNullOrWhiteSpace($ClientSecret)) { $values.Add('client_secret', $ClientSecret) }
     $values.Add('redirect_uri', $redirectUri)
     $values.Add('grant_type', 'authorization_code')
+    $values.Add('code_verifier', $codeVerifier)
     $web = New-Object System.Net.WebClient
     $tokenBytes = $web.UploadValues($TokenUri, 'POST', $values)
     $tokenResponseText = [Text.Encoding]::UTF8.GetString($tokenBytes)

@@ -1,7 +1,11 @@
 function Save-GoogleCalendarAuthorizationResult([string]$resultPath) {
     if (-not (Test-Path -LiteralPath $resultPath)) { throw 'Google authorization response not found.' }
     $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
-    if (-not [bool]$result.success) { throw [string]$result.error }
+    if (-not [bool]$result.success) {
+        $errorMessage = [string]$result.error
+        Remove-Item -LiteralPath $resultPath -Force -ErrorAction SilentlyContinue
+        throw $errorMessage
+    }
     if ([string]::IsNullOrWhiteSpace([string]$result.accessToken)) { throw 'Google authorization response has no access token.' }
     $session = [pscustomobject][ordered]@{
         redirectUri = [string]$result.redirectUri
@@ -12,7 +16,6 @@ function Save-GoogleCalendarAuthorizationResult([string]$resultPath) {
     }
     [System.IO.File]::WriteAllText((Join-Path $base 'google-calendar-session.json'), ($session | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
     Remove-Item -LiteralPath $resultPath -Force -ErrorAction SilentlyContinue
-    Sync-GoogleCalendar $true
 }
 
 function Remove-LegacyGoogleCalendarConfig {
@@ -58,6 +61,19 @@ function Disconnect-GoogleCalendar {
     $script:tasks = @($script:tasks | Where-Object { [string]$_.source -ne 'googleCalendar' })
     Save-Tasks
     Render-Tasks
+}
+
+function Start-GoogleCalendarAuthorization($client, [string]$sourceName) {
+    if ([string]::IsNullOrWhiteSpace([string]$client.clientId)) { throw 'The OAuth client ID is missing.' }
+    $clientConfig = [pscustomobject][ordered]@{ clientId = [string]$client.clientId; clientSecret = [string]$client.clientSecret; projectId = [string]$client.projectId; authUri = [string]$client.authUri; tokenUri = [string]$client.tokenUri }
+    [System.IO.File]::WriteAllText((Join-Path $base 'google-calendar-client.json'), ($clientConfig | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
+    $script:calendarCredentialSourceFile = $sourceName
+    $resultPath = Join-Path $base 'google-calendar-auth-result.json'
+    foreach ($path in @($resultPath, "$resultPath.url")) { if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force } }
+    $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $base 'google-calendar-auth.ps1'), '-ClientId', ([string]$client.clientId), '-ProjectId', ([string]$client.projectId), '-AuthUri', ([string]$client.authUri), '-TokenUri', ([string]$client.tokenUri), '-ResultPath', $resultPath, '-SourceCredentialFile', $sourceName)
+    if (-not [string]::IsNullOrWhiteSpace([string]$client.clientSecret)) { $arguments += @('-ClientSecret', [string]$client.clientSecret) }
+    Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -WindowStyle Hidden | Out-Null
+    Show-GoogleCalendarConnectionCountdown
 }
 
 function Show-GoogleCalendarConnectionCountdown {
@@ -235,6 +251,34 @@ function New-GoogleCalendarSettingsContent {
     $disconnect.Height = 38
     $disconnect.Margin = '0,18,0,0'
     $connectedPanel.Children.Add($disconnect) | Out-Null
+    $choicePanel = New-Object System.Windows.Controls.StackPanel
+    $choicePanel.Margin = '0,18,0,0'
+    $choiceTitle = New-Object System.Windows.Controls.TextBlock
+    $choiceTitle.Text = 'CHOOSE HOW TO CONNECT'
+    $choiceTitle.Foreground = [System.Windows.Media.Brushes]::White
+    $choiceTitle.FontSize = 18
+    $choiceTitle.FontWeight = 'SemiBold'
+    $choicePanel.Children.Add($choiceTitle) | Out-Null
+    $defaultDescription = New-Object System.Windows.Controls.TextBlock
+    $defaultDescription.Text = 'Recommended: use the public widget credentials. You only need to select your Google account and authorize read-only Calendar access.'
+    $defaultDescription.Foreground = [System.Windows.Media.Brushes]::LightGray
+    $defaultDescription.TextWrapping = 'Wrap'
+    $defaultDescription.Margin = '0,14,0,8'
+    $choicePanel.Children.Add($defaultDescription) | Out-Null
+    $useDefault = New-RoundButton 'USE WIDGET CREDENTIALS' 220
+    $useDefault.Width = 220
+    $useDefault.Height = 40
+    $choicePanel.Children.Add($useDefault) | Out-Null
+    $personalDescription = New-Object System.Windows.Controls.TextBlock
+    $personalDescription.Text = 'Advanced: use your own Google Cloud project and OAuth credential file.'
+    $personalDescription.Foreground = [System.Windows.Media.Brushes]::LightGray
+    $personalDescription.TextWrapping = 'Wrap'
+    $personalDescription.Margin = '0,22,0,8'
+    $choicePanel.Children.Add($personalDescription) | Out-Null
+    $usePersonal = New-RoundButton 'USE PERSONAL CREDENTIALS' 220
+    $usePersonal.Width = 220
+    $usePersonal.Height = 40
+    $choicePanel.Children.Add($usePersonal) | Out-Null
     $tutorial = New-Object System.Windows.Controls.StackPanel
     $tutorial.Margin = '0,14,0,0'
     $steps = @(
@@ -281,11 +325,14 @@ function New-GoogleCalendarSettingsContent {
     $status.TextWrapping = 'Wrap'
     $tutorial.Children.Add($status) | Out-Null
     $panel.Children.Add($connectedPanel) | Out-Null
+    $panel.Children.Add($choicePanel) | Out-Null
     $panel.Children.Add($tutorial) | Out-Null
+    $tutorial.Visibility = 'Collapsed'
     $refreshLayout = {
         $connected = $null -ne (Get-GoogleCalendarConfig)
         $connectedPanel.Visibility = if ($connected) { 'Visible' } else { 'Collapsed' }
-        $tutorial.Visibility = if ($connected) { 'Collapsed' } else { 'Visible' }
+        $choicePanel.Visibility = if ($connected) { 'Collapsed' } else { 'Visible' }
+        if ($connected) { $tutorial.Visibility = 'Collapsed' }
         $eventsList.Children.Clear()
         $events = @($script:lastGoogleCalendarEvents)
         if ($events.Count -eq 0) {
@@ -304,6 +351,23 @@ function New-GoogleCalendarSettingsContent {
             }
         }
     }
+    $useDefault.Add_Click({
+        try {
+            $defaultPath = Join-Path $base 'google-calendar-default.json'
+            if (-not (Test-Path -LiteralPath $defaultPath)) { throw 'The public widget OAuth configuration is missing.' }
+            $client = Get-Content -LiteralPath $defaultPath -Raw | ConvertFrom-Json
+            Start-GoogleCalendarAuthorization $client 'widget-default'
+        } catch {
+            $status.Text = $_.Exception.Message
+            $status.Foreground = [System.Windows.Media.Brushes]::IndianRed
+            $tutorial.Visibility = 'Visible'
+            $choicePanel.Visibility = 'Collapsed'
+        }
+    }.GetNewClosure())
+    $usePersonal.Add_Click({
+        $choicePanel.Visibility = 'Collapsed'
+        $tutorial.Visibility = 'Visible'
+    }.GetNewClosure())
     $browse.Add_Click({
         $dialog = New-Object Microsoft.Win32.OpenFileDialog
         $dialog.Title = 'Select Google OAuth client credentials'
@@ -322,14 +386,8 @@ function New-GoogleCalendarSettingsContent {
             $installed = $credential.installed
             if ([string]::IsNullOrWhiteSpace([string]$installed.client_id) -or [string]::IsNullOrWhiteSpace([string]$installed.client_secret)) { throw 'The selected file does not contain a client ID and client secret.' }
             $sourceName = [System.IO.Path]::GetFileName($selectedPath.Text)
-            $clientConfig = [pscustomobject][ordered]@{ clientId = [string]$installed.client_id; clientSecret = [string]$installed.client_secret; projectId = [string]$installed.project_id; authUri = [string]$installed.auth_uri; tokenUri = [string]$installed.token_uri }
-            [System.IO.File]::WriteAllText((Join-Path $base 'google-calendar-client.json'), ($clientConfig | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
-            $script:calendarCredentialSourceFile = $sourceName
-            $resultPath = Join-Path $base 'google-calendar-auth-result.json'
-            foreach ($path in @($resultPath, "$resultPath.url")) { if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force } }
-            $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $base 'google-calendar-auth.ps1'), '-ClientId', ([string]$installed.client_id), '-ClientSecret', ([string]$installed.client_secret), '-ProjectId', ([string]$installed.project_id), '-AuthUri', ([string]$installed.auth_uri), '-TokenUri', ([string]$installed.token_uri), '-ResultPath', $resultPath, '-SourceCredentialFile', $sourceName)
-            Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -WindowStyle Hidden | Out-Null
-            Show-GoogleCalendarConnectionCountdown
+            $client = [pscustomobject][ordered]@{ clientId = [string]$installed.client_id; clientSecret = [string]$installed.client_secret; projectId = [string]$installed.project_id; authUri = [string]$installed.auth_uri; tokenUri = [string]$installed.token_uri }
+            Start-GoogleCalendarAuthorization $client $sourceName
         } catch {
             & $refreshLayout
             $status.Text = $_.Exception.Message
@@ -365,25 +423,28 @@ function Get-GoogleCalendarConfig {
 function Initialize-GoogleCalendar {
     Remove-LegacyGoogleCalendarConfig
     $resultPath = Join-Path $base 'google-calendar-auth-result.json'
-    if (Test-Path -LiteralPath $resultPath) { Save-GoogleCalendarAuthorizationResult $resultPath }
+    $newAuthorization = Test-Path -LiteralPath $resultPath
+    if ($newAuthorization) { Save-GoogleCalendarAuthorizationResult $resultPath }
     if ($null -eq (Get-GoogleCalendarConfig)) { return }
-    Sync-GoogleCalendar
-    [System.Windows.MessageBox]::Show(
-        'Google Calendar connected and synchronized successfully.',
-        'Google Calendar',
-        [System.Windows.MessageBoxButton]::OK,
-        [System.Windows.MessageBoxImage]::Information
-    ) | Out-Null
+    Sync-GoogleCalendar $false $newAuthorization
+    if ($newAuthorization) {
+        [System.Windows.MessageBox]::Show(
+            'Google Calendar connected and synchronized successfully.',
+            'Google Calendar',
+            [System.Windows.MessageBoxButton]::OK,
+            [System.Windows.MessageBoxImage]::Information
+        ) | Out-Null
+    }
 }
 
 function Update-GoogleCalendarAccessToken($calendar) {
     if ([string]::IsNullOrWhiteSpace([string]$calendar.refreshToken)) { return [string]$calendar.accessToken }
     $body = @{
         client_id = [string]$calendar.clientId
-        client_secret = [string]$calendar.clientSecret
         refresh_token = [string]$calendar.refreshToken
         grant_type = 'refresh_token'
     }
+    if (-not [string]::IsNullOrWhiteSpace([string]$calendar.clientSecret)) { $body.client_secret = [string]$calendar.clientSecret }
     $tokens = Invoke-RestMethod -Method Post -Uri ([string]$calendar.tokenUri) -Body $body -ContentType 'application/x-www-form-urlencoded'
     if ([string]::IsNullOrWhiteSpace([string]$tokens.access_token)) { throw 'Google did not renew the access token.' }
     $calendar.accessToken = [string]$tokens.access_token
@@ -394,13 +455,13 @@ function Update-GoogleCalendarAccessToken($calendar) {
     [string]$tokens.access_token
 }
 
-function Sync-GoogleCalendar([bool]$allowDuringEdit = $false) {
+function Sync-GoogleCalendar([bool]$allowDuringEdit = $false, [bool]$useCurrentAccessToken = $false) {
     if ($script:calendarSyncActive -or ($script:editMode -and -not $allowDuringEdit)) { return }
     $calendar = Get-GoogleCalendarConfig
     if ($null -eq $calendar) { return }
     $script:calendarSyncActive = $true
     try {
-        $token = Update-GoogleCalendarAccessToken $calendar
+        $token = if ($useCurrentAccessToken) { [string]$calendar.accessToken } else { Update-GoogleCalendarAccessToken $calendar }
         $now = [DateTimeOffset]::Now
         $end = [DateTimeOffset]::new($now.Year, $now.Month, $now.Day, 23, 59, 59, $now.Offset)
         $query = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin=' + [Uri]::EscapeDataString($now.ToString('o')) + '&timeMax=' + [Uri]::EscapeDataString($end.ToString('o'))

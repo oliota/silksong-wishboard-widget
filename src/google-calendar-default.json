@@ -1,0 +1,7 @@
+{
+  "clientId": "617323091780-0eroi8peqqttamjg0u742ag5ngbnakgm.apps.googleusercontent.com",
+  "clientSecret": "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",
+  "projectId": "oliota-calendar",
+  "authUri": "https://accounts.google.com/o/oauth2/v2/auth",
+  "tokenUri": "https://oauth2.googleapis.com/token"
+}
