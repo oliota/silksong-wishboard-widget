@@ -5,7 +5,7 @@
     "install": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"Get-ChildItem -Recurse | Unblock-File\"",
     "run": "powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File src/widget.ps1",
     "test": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"Get-ChildItem src -Filter *.json -Recurse | ForEach-Object { Get-Content $_.FullName -Raw | ConvertFrom-Json | Out-Null }\"",
-    "build": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"Compress-Archive -Path 'Desktop Wish Board.vbs','src','README.md','package.json' -DestinationPath silksong-wishboard-widget.zip -Force\"",
+    "build": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"Compress-Archive -Path 'Desktop Wish Board.vbs','src','README.md','ARCHITECTURE.md','package.json' -DestinationPath silksong-wishboard-widget.zip -Force\"",
     "lint": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$errors=$null; Get-ChildItem src -Filter *.ps1 -Recurse | ForEach-Object { [System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$null,[ref]$errors) | Out-Null; if($errors){$errors; exit 1} }\"",
     "format": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"Get-ChildItem src -Filter *.ps1 -Recurse | ForEach-Object { $content=Get-Content $_.FullName -Raw; [IO.File]::WriteAllText($_.FullName,$content.TrimEnd()+[Environment]::NewLine,[Text.UTF8Encoding]::new($false)) }\"",
     "debug": "powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File src/widget.ps1",

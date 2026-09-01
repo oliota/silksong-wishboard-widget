@@ -14,6 +14,8 @@
 
 > Double-click **`Desktop Wish Board.vbs`** to start.
 
+The codebase is organized into responsibility-based modules. See [ARCHITECTURE.md](ARCHITECTURE.md) for the module map and isolated animation lifecycle.
+
 ## What You Can Do
 
 | Action | How it works |

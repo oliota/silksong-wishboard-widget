@@ -41,7 +41,7 @@ function Continue-CalendarSummonsQueue {
     $script:calendarSummonsNextTimer = New-Object System.Windows.Threading.DispatcherTimer
     $script:calendarSummonsNextTimer.Interval = [TimeSpan]::FromMilliseconds(180)
     $script:calendarSummonsNextTimer.Add_Tick({
-        $script:calendarSummonsNextTimer.Stop()
+        if ($null -ne $script:calendarSummonsNextTimer) { $script:calendarSummonsNextTimer.Stop() }
         $script:calendarSummonsNextTimer = $null
         Start-NextCalendarSummonsTask
     })
@@ -108,9 +108,9 @@ function Start-CalendarSummonsDeparture {
         $rotation.Angle = 105.0 * [Math]::Min(1.0, $progress * 1.8)
         $translation.Y = $fallDistance * $eased
         if ($progress -ge 1.0) {
-            $timer.Stop()
+            if ($null -ne $script:calendarSummonsTimer) { $script:calendarSummonsTimer.Stop() }
             $script:root.Children.Remove($pinControl)
-            $script:calendarSummonsPin = $null
+            if ($script:calendarSummonsPin -eq $pinControl) { $script:calendarSummonsPin = $null }
             $script:calendarSummonsTimer = $null
             Start-CalendarSummonsCrawDeparture
         }
@@ -119,39 +119,59 @@ function Start-CalendarSummonsDeparture {
 }
 
 function Start-CalendarSummonsCrawDeparture {
-    $crawImage = $script:calendarSummonsCraw
-    if ($null -eq $crawImage) { Remove-CalendarSummons; return }
+    $restingCraw = $script:calendarSummonsCraw
+    if ($restingCraw -isnot [System.Windows.Controls.Image]) { Remove-CalendarSummons; return }
     Stop-TaskPlacementAnimation
-    $startX = [double][System.Windows.Controls.Canvas]::GetLeft($crawImage)
-    $startY = [double][System.Windows.Controls.Canvas]::GetTop($crawImage)
+    $startX = [double][System.Windows.Controls.Canvas]::GetLeft($restingCraw)
+    $startY = [double][System.Windows.Controls.Canvas]::GetTop($restingCraw)
+    $width = [Math]::Max(1.0, [double]$restingCraw.Width)
+    $height = [Math]::Max(1.0, [double]$restingCraw.Height)
     $designWidth = [double]$script:config.widget.designWidth
     $goRight = $startX -ge ($designWidth * 0.5)
-    $targetX = if ($goRight) { $designWidth + $crawImage.Width + 40.0 } else { -$crawImage.Width - 40.0 }
-    $crawImage.RenderTransform = if ($goRight) { [System.Windows.Media.ScaleTransform]::new(-1, 1) } else { [System.Windows.Media.ScaleTransform]::new(1, 1) }
-    $crawImage.Visibility = 'Visible'
-    $crawImage.Opacity = 1.0
-    [System.Windows.Controls.Panel]::SetZIndex($crawImage, 9000)
-    Set-CalendarSummonsImage $crawImage 'craw-flight-0000.png'
-    $duration = [System.Windows.Duration]::new([TimeSpan]::FromSeconds(1.35))
-    $leftAnimation = New-Object System.Windows.Media.Animation.DoubleAnimationUsingKeyFrames
-    $leftAnimation.Duration = $duration
-    $leftAnimation.KeyFrames.Add([System.Windows.Media.Animation.LinearDoubleKeyFrame]::new($startX, [System.Windows.Media.Animation.KeyTime]::FromTimeSpan([TimeSpan]::Zero))) | Out-Null
-    $leftAnimation.KeyFrames.Add([System.Windows.Media.Animation.LinearDoubleKeyFrame]::new($startX, [System.Windows.Media.Animation.KeyTime]::FromTimeSpan([TimeSpan]::FromSeconds(0.24)))) | Out-Null
-    $leftAnimation.KeyFrames.Add([System.Windows.Media.Animation.SplineDoubleKeyFrame]::new($targetX, [System.Windows.Media.Animation.KeyTime]::FromTimeSpan([TimeSpan]::FromSeconds(1.35)))) | Out-Null
-    $topAnimation = New-Object System.Windows.Media.Animation.DoubleAnimationUsingKeyFrames
-    $topAnimation.Duration = $duration
-    $topAnimation.KeyFrames.Add([System.Windows.Media.Animation.LinearDoubleKeyFrame]::new($startY, [System.Windows.Media.Animation.KeyTime]::FromTimeSpan([TimeSpan]::Zero))) | Out-Null
-    $topAnimation.KeyFrames.Add([System.Windows.Media.Animation.SplineDoubleKeyFrame]::new($startY - 30.0, [System.Windows.Media.Animation.KeyTime]::FromTimeSpan([TimeSpan]::FromSeconds(0.24)))) | Out-Null
-    $topAnimation.KeyFrames.Add([System.Windows.Media.Animation.SplineDoubleKeyFrame]::new($startY - 150.0, [System.Windows.Media.Animation.KeyTime]::FromTimeSpan([TimeSpan]::FromSeconds(1.35)))) | Out-Null
-    $leftAnimation.Add_Completed({
-        $activeCraw = $script:calendarSummonsCraw
-        if ($activeCraw -is [System.Windows.Controls.Image]) { $script:root.Children.Remove($activeCraw) }
-        $script:calendarSummonsCraw = $null
-        $script:calendarSummonsTimer = $null
-        Remove-CalendarSummons
-    })
-    $crawImage.BeginAnimation([System.Windows.Controls.Canvas]::LeftProperty, $leftAnimation)
-    $crawImage.BeginAnimation([System.Windows.Controls.Canvas]::TopProperty, $topAnimation)
+    $targetX = if ($goRight) { $designWidth + $width + 40.0 } else { -$width - 40.0 }
+    $script:root.Children.Remove($restingCraw)
+    $script:calendarSummonsCraw = $null
+
+    $flyingCraw = New-Object System.Windows.Controls.Image
+    $flyingCraw.Width = $width
+    $flyingCraw.Height = $height
+    $flyingCraw.Stretch = 'Uniform'
+    $flyingCraw.IsHitTestVisible = $false
+    $flyingCraw.Opacity = 1.0
+    $flyingCraw.RenderTransformOrigin = '0.5,0.5'
+    $flyingCraw.RenderTransform = if ($goRight) { [System.Windows.Media.ScaleTransform]::new(-1, 1) } else { [System.Windows.Media.ScaleTransform]::new(1, 1) }
+    Set-CalendarSummonsImage $flyingCraw 'craw-takeoff-0000.png'
+    [System.Windows.Controls.Canvas]::SetLeft($flyingCraw, $startX)
+    [System.Windows.Controls.Canvas]::SetTop($flyingCraw, $startY)
+    $script:root.Children.Add($flyingCraw) | Out-Null
+    [System.Windows.Controls.Panel]::SetZIndex($flyingCraw, 9000)
+    $script:calendarSummonsCraw = $flyingCraw
+
+    $frames = @('craw-takeoff-0000.png', 'craw-takeoff-0001.png', 'craw-takeoff-0002.png', 'craw-flight-0000.png', 'craw-flight-0001.png', 'craw-flight-0002.png', 'craw-flight-0003.png', 'craw-flight-0004.png', 'craw-flight-0005.png')
+    $state = [pscustomobject]@{ StartedAt = [DateTime]::UtcNow; Frame = -1 }
+    $timer = New-Object System.Windows.Threading.DispatcherTimer
+    $timer.Interval = [TimeSpan]::FromMilliseconds(16)
+    $script:calendarSummonsTimer = $timer
+    $timer.Add_Tick({
+        $elapsed = ([DateTime]::UtcNow - $state.StartedAt).TotalSeconds
+        $progress = [Math]::Min(1.0, $elapsed / 1.35)
+        $eased = $progress * $progress * (3.0 - (2.0 * $progress))
+        $frame = [Math]::Min($frames.Count - 1, [int][Math]::Floor($progress * $frames.Count))
+        if ($frame -ne $state.Frame) {
+            Set-CalendarSummonsImage $flyingCraw $frames[$frame]
+            $state.Frame = $frame
+        }
+        [System.Windows.Controls.Canvas]::SetLeft($flyingCraw, $startX + (($targetX - $startX) * $eased))
+        [System.Windows.Controls.Canvas]::SetTop($flyingCraw, $startY - (150.0 * $eased) - ([Math]::Sin($progress * [Math]::PI * 5.0) * 5.0))
+        if ($progress -ge 1.0) {
+            if ($null -ne $script:calendarSummonsTimer) { $script:calendarSummonsTimer.Stop() }
+            $script:calendarSummonsTimer = $null
+            $script:root.Children.Remove($flyingCraw)
+            if ($script:calendarSummonsCraw -eq $flyingCraw) { $script:calendarSummonsCraw = $null }
+            Remove-CalendarSummons
+        }
+    }.GetNewClosure())
+    $timer.Start()
 }
 
 function Show-CalendarSummons($events) {
@@ -300,13 +320,13 @@ function Show-CalendarSummons($events) {
         [System.Windows.Controls.Canvas]::SetLeft($craw, $x)
         [System.Windows.Controls.Canvas]::SetTop($craw, $y)
         if ($elapsed -ge 4.0) {
-            $timer.Stop()
+            if ($null -ne $script:calendarSummonsTimer) { $script:calendarSummonsTimer.Stop() }
             $script:calendarSummonsTimer = $null
-            Set-CalendarSummonsImage $script:calendarSummonsPinImage 'craw_court_summons_pin0007.png'
-            Set-CalendarSummonsImage $script:calendarSummonsCraw 'craw-rest-0000.png'
-            [System.Windows.Controls.Canvas]::SetTop($script:calendarSummonsPin, $groundY)
-            [System.Windows.Controls.Canvas]::SetLeft($script:calendarSummonsCraw, $restX)
-            [System.Windows.Controls.Canvas]::SetTop($script:calendarSummonsCraw, $restY)
+            Set-CalendarSummonsImage $pinImage 'craw_court_summons_pin0007.png'
+            Set-CalendarSummonsImage $craw 'craw-rest-0000.png'
+            [System.Windows.Controls.Canvas]::SetTop($pin, $groundY)
+            [System.Windows.Controls.Canvas]::SetLeft($craw, $restX)
+            [System.Windows.Controls.Canvas]::SetTop($craw, $restY)
         }
     }.GetNewClosure())
     $timer.Start()

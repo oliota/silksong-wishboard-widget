@@ -55,6 +55,10 @@ function Exit-ApplicationInstance {
 }
 
 function Dispose-ApplicationResources {
+    if (Get-Command Stop-AllWidgetTimers -ErrorAction SilentlyContinue) {
+        Stop-AllWidgetTimers
+    }
+
     if (Get-Command Stop-TaskPlacementAnimation -ErrorAction SilentlyContinue) {
         Stop-TaskPlacementAnimation
     }

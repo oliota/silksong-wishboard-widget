@@ -3,8 +3,10 @@ $base = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectRoot = Split-Path -Parent $base
 
 . (Join-Path $base 'modules/ApplicationLifecycle.ps1')
+. (Join-Path $base 'modules/Core/TimerRegistry.ps1')
 
 Initialize-WidgetLog
+Initialize-TimerRegistry
 
 if (-not (Enter-ApplicationInstance)) {
     exit 0
@@ -31,16 +33,45 @@ $profilesPath = Join-Path $base 'profiles.json'
 $iconsPath = Join-Path $base 'icons.json'
 $iconColorsPath = Join-Path $base 'icons/colors.json'
 
-. (Join-Path $base 'modules/Tasks.ps1')
-. (Join-Path $base 'modules/BoardProfiles.ps1')
-. (Join-Path $base 'modules/BoardGeometry.ps1')
-. (Join-Path $base 'modules/TaskDetails.ps1')
-. (Join-Path $base 'modules/SettingsWindow.ps1')
-. (Join-Path $base 'modules/TaskAnimation.ps1')
-. (Join-Path $base 'modules/BoardRendering.ps1')
-. (Join-Path $base 'modules/WindowState.ps1')
-. (Join-Path $base 'modules/GoogleCalendar.ps1')
-. (Join-Path $base 'modules/CalendarSummons.ps1')
+. (Join-Path $base 'modules/Tasks/TaskRepository.ps1')
+. (Join-Path $base 'modules/Tasks/TaskBadgeFactory.ps1')
+. (Join-Path $base 'modules/Tasks/IconSelection.ps1')
+. (Join-Path $base 'modules/Tasks/TaskCreation.ps1')
+. (Join-Path $base 'modules/Board/ProfileService.ps1')
+. (Join-Path $base 'modules/Application/StartupService.ps1')
+. (Join-Path $base 'modules/Board/AreaState.ps1')
+. (Join-Path $base 'modules/Board/PlacementGeometry.ps1')
+. (Join-Path $base 'modules/Board/PositionCache.ps1')
+. (Join-Path $base 'modules/Board/AreaEditor.ps1')
+. (Join-Path $base 'modules/Windows/DecorativeControls.ps1')
+. (Join-Path $base 'modules/Windows/TaskDetailEditor.ps1')
+. (Join-Path $base 'modules/Windows/TaskDetailWindow.ps1')
+. (Join-Path $base 'modules/Windows/SettingsControls.ps1')
+. (Join-Path $base 'modules/Windows/SettingsWindow.ps1')
+. (Join-Path $base 'modules/Tasks/AnimationCommon.ps1')
+. (Join-Path $base 'modules/Tasks/PlacementAnimation.ps1')
+. (Join-Path $base 'modules/Tasks/DeletionAnimation.ps1')
+. (Join-Path $base 'modules/Board/BackgroundRendering.ps1')
+. (Join-Path $base 'modules/Board/AreaRendering.ps1')
+. (Join-Path $base 'modules/Board/TaskRendering.ps1')
+. (Join-Path $base 'modules/Windows/DisplayService.ps1')
+. (Join-Path $base 'modules/Application/ConfigurationService.ps1')
+. (Join-Path $base 'modules/Calendar/AuthorizationService.ps1')
+. (Join-Path $base 'modules/Calendar/CalendarSettings.ps1')
+. (Join-Path $base 'modules/Calendar/CalendarSyncService.ps1')
+. (Join-Path $base 'modules/Calendar/SummonsState.ps1')
+. (Join-Path $base 'modules/Calendar/SummonsQueue.ps1')
+. (Join-Path $base 'modules/Calendar/PinDepartureAnimation.ps1')
+. (Join-Path $base 'modules/Calendar/CrawDepartureAnimation.ps1')
+. (Join-Path $base 'modules/Calendar/CrawArrivalAnimation.ps1')
+. (Join-Path $base 'modules/Windows/Add-BackgroundOptionRow.ps1')
+. (Join-Path $base 'modules/Windows/Render-BackgroundChoices.ps1')
+. (Join-Path $base 'modules/Windows/Commit-BackgroundEdits.ps1')
+. (Join-Path $base 'modules/Windows/Show-Widget.ps1')
+. (Join-Path $base 'modules/Windows/Exit-Widget.ps1')
+. (Join-Path $base 'modules/Windows/Hide-Widget.ps1')
+. (Join-Path $base 'modules/Windows/Get-ButtonAncestor.ps1')
+. (Join-Path $base 'modules/Board/Invoke-EditModeSave.ps1')
 
 $script:editMode = $false
 $script:draggingEditorNode = $null
@@ -925,182 +956,8 @@ $resizeButton.Add_DragCompleted({
 })
 
 
-function Add-BackgroundOptionRow($entry) {
-    $row = New-Object System.Windows.Controls.Grid
-    $row.Height = 42
-    $row.Margin = '0,0,0,6'
 
-    $col1 = New-Object System.Windows.Controls.ColumnDefinition
-    $col1.Width = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star)
-    $col2 = New-Object System.Windows.Controls.ColumnDefinition
-    $col2.Width = New-Object System.Windows.GridLength(38)
-    $row.ColumnDefinitions.Add($col1)
-    $row.ColumnDefinitions.Add($col2)
 
-    $select = New-Object System.Windows.Controls.Button
-    $select.Content = [string]$entry.name
-    $select.ToolTip = [string]$entry.name
-    $select.Tag = [string]$entry.id
-    $select.HorizontalContentAlignment = 'Left'
-    $select.Padding = '10,0,10,0'
-    $select.Height = 36
-
-    if ([string]$entry.id -eq [string]$script:editProfileId) {
-        $select.FontWeight = 'Bold'
-    }
-
-    $select.Add_Click({
-        param($s, $e)
-
-        if (-not $script:editMode) { return }
-
-        Push-EditUndo
-        Set-Profile ([string]$s.Tag) $true
-        Render-BackgroundChoices
-        $script:backgroundPanel.Visibility = 'Collapsed'
-    })
-
-    [System.Windows.Controls.Grid]::SetColumn($select, 0)
-    $row.Children.Add($select) | Out-Null
-
-    if ($false) {
-        $delete = New-Object System.Windows.Controls.Button
-        $delete.Content = 'X'
-        $delete.ToolTip = 'Delete Background'
-        $delete.Tag = [string]$entry.id
-        $delete.Width = 32
-        $delete.Height = 32
-        $delete.Margin = '4,2,0,2'
-
-        $delete.Add_Click({
-            param($s, $e)
-
-            if (-not $script:editMode) { return }
-
-            $id = [string]$s.Tag
-
-            if ($id -eq 'default') { return }
-
-            Push-EditUndo
-            [void]$script:pendingDeletedBackgroundIds.Add($id)
-
-            $registry = Read-BackgroundRegistry
-            $entryToDelete = @($registry.backgrounds | Where-Object { [string]$_.id -eq $id }) | Select-Object -First 1
-
-            if ($null -ne $entryToDelete -and [string]$entryToDelete.file -eq [string]$script:editBackgroundFile) {
-                $default = Get-DefaultBackground
-                $script:editBackgroundFile = [string]$default.file
-                Render-Background
-            }
-
-            Render-BackgroundChoices
-        })
-
-        [System.Windows.Controls.Grid]::SetColumn($delete, 1)
-        $row.Children.Add($delete) | Out-Null
-    }
-
-    $script:backgroundList.Children.Add($row) | Out-Null
-}
-
-function Render-BackgroundChoices {
-    if ($null -eq $script:backgroundList) { return }
-
-    $script:backgroundList.Children.Clear()
-
-    $browse = New-Object System.Windows.Controls.Button
-    $browse.Content = 'Browse in PC...'
-    $browse.ToolTip = 'Browse Backgrounds'
-    $browse.Height = 38
-    $browse.Margin = '0,0,0,10'
-    $browse.FontWeight = 'SemiBold'
-
-    $browse.Add_Click({
-        if (-not $script:editMode) { return }
-
-        $dialog = New-Object Microsoft.Win32.OpenFileDialog
-        $dialog.Title = 'Choose PNG background'
-        $dialog.Filter = 'PNG image (*.png)|*.png'
-        $dialog.Multiselect = $false
-
-        if ($dialog.ShowDialog() -ne $true) { return }
-
-        Add-Type -AssemblyName Microsoft.VisualBasic
-        $name = [Microsoft.VisualBasic.Interaction]::InputBox(
-            'Name for this background:',
-            'Background name',
-            [System.IO.Path]::GetFileNameWithoutExtension($dialog.FileName)
-        ).Trim()
-
-        if ([string]::IsNullOrWhiteSpace($name)) { return }
-
-        $registry = Read-BackgroundRegistry
-
-        if (@($registry.backgrounds | Where-Object { [string]$_.name -ieq $name }).Count -gt 0) {
-            [System.Windows.MessageBox]::Show('A background with this name already exists.', 'Desktop Widget') | Out-Null
-            return
-        }
-
-        $id = 'bg-' + [Guid]::NewGuid().ToString('N')
-        $relative = 'backgrounds/' + $id + '.png'
-        $destination = Join-Path $base $relative
-
-        Copy-Item -LiteralPath $dialog.FileName -Destination $destination -Force
-
-        $newEntry = [pscustomobject][ordered]@{
-            id = $id
-            name = $name
-            file = $relative
-            protected = $false
-        }
-
-        $registry.backgrounds = @($registry.backgrounds) + @($newEntry)
-        Save-BackgroundRegistry $registry
-
-        Push-EditUndo
-        $script:editBackgroundFile = $relative
-        Render-Background
-        Render-BackgroundChoices
-        $script:backgroundPanel.Visibility = 'Collapsed'
-    })
-
-    $browse.Visibility = 'Collapsed'
-
-    $registry = Read-ProfileRegistry
-
-    foreach ($entry in @($registry.profiles)) {
-        if ($script:pendingDeletedBackgroundIds.Contains([string]$entry.id)) {
-            continue
-        }
-
-        Add-BackgroundOptionRow $entry
-    }
-}
-
-function Commit-BackgroundEdits {
-    $registry = Read-BackgroundRegistry
-    $kept = @()
-
-    foreach ($entry in @($registry.backgrounds)) {
-        $id = [string]$entry.id
-
-        if ($script:pendingDeletedBackgroundIds.Contains($id) -and -not [bool]$entry.protected) {
-            $path = Join-Path $base ([string]$entry.file)
-
-            if (Test-Path $path) {
-                Remove-Item -LiteralPath $path -Force
-            }
-
-            continue
-        }
-
-        $kept += $entry
-    }
-
-    $registry.backgrounds = @($kept)
-    Save-BackgroundRegistry $registry
-    $script:pendingDeletedBackgroundIds.Clear()
-}
 
 
 $backgroundClose.Add_Click({
@@ -1134,51 +991,9 @@ $backgroundYSlider.Add_ValueChanged({
     Render-Background
 })
 
-function Show-Widget {
-    if ($script:exiting) { return }
-    if ($null -eq $script:window) { return }
-
-    $script:userHidden = $false
-
-    if (-not $script:window.IsVisible) {
-        $script:window.Show()
-    }
-
-    $script:window.WindowState = 'Normal'
-    $script:window.Topmost = [bool]$script:config.widget.topmost
-    Ensure-WidgetOnVisibleDisplay $true | Out-Null
-    $script:window.Activate() | Out-Null
-}
 
 
-function Exit-Widget {
-    if ($script:exiting) { return }
 
-    if ($script:editMode) {
-        Cancel-EditSession
-    }
-
-    $script:exiting = $true
-    $script:userHidden = $true
-
-    Dispose-ApplicationResources
-
-    if ($null -ne $script:window) {
-        $script:config.widget.width = [Math]::Round([double]$script:window.Width, 1)
-        $script:config.widget.height = [Math]::Round([double]$script:window.Height, 1)
-        Save-WidgetPlacement
-        $script:window.Close()
-    }
-
-    [System.Windows.Threading.Dispatcher]::CurrentDispatcher.BeginInvokeShutdown(
-        [System.Windows.Threading.DispatcherPriority]::Background
-    )
-}
-
-function Hide-Widget {
-    $script:userHidden = $true
-    $script:window.Hide()
-}
 
 $closeButton.Add_PreviewMouseLeftButtonDown({
     param($s, $e)
@@ -1240,9 +1055,6 @@ $detailClose.Add_Click({
 
 $addClose.Add_Click({ Close-AddTaskPanel })
 
-function Invoke-EditModeSave {
-    $script:editButton.RaiseEvent([System.Windows.RoutedEventArgs]::new([System.Windows.Controls.Button]::ClickEvent))
-}
 
 $editButton.Add_Click({
     if (-not $script:editMode) {
@@ -1578,24 +1390,6 @@ $createButton.Add_PreviewMouseLeftButtonUp({
     Create-NewTask
 })
 
-function Get-ButtonAncestor($element) {
-    $current = $element
-
-    while ($null -ne $current) {
-        if ($current -is [System.Windows.Controls.Button]) {
-            return $current
-        }
-
-        try {
-            $current = [System.Windows.Media.VisualTreeHelper]::GetParent($current)
-        }
-        catch {
-            return $null
-        }
-    }
-
-    return $null
-}
 
 $root.Add_MouseLeftButtonDown({
     param($s, $e)
