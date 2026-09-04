@@ -38,6 +38,7 @@ $iconColorsPath = Join-Path $base 'icons/colors.json'
 . (Join-Path $base 'modules/Tasks/IconSelection.ps1')
 . (Join-Path $base 'modules/Tasks/TaskCreation.ps1')
 . (Join-Path $base 'modules/Board/ProfileService.ps1')
+. (Join-Path $base 'modules/Board/CustomProfileService.ps1')
 . (Join-Path $base 'modules/Application/StartupService.ps1')
 . (Join-Path $base 'modules/Board/AreaState.ps1')
 . (Join-Path $base 'modules/Board/PlacementGeometry.ps1')

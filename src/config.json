@@ -3,12 +3,12 @@
     "animation":  {
                       "placementDurationSeconds":  3
                   },
-    "profile":  "bellhart",
+    "profile":  "custom-4c19f0f175df4c38b59ec28cba9d43ce",
     "widget":  {
-                   "width":  527,
-                   "height":  568,
-                   "left":  1393,
-                   "top":  429,
+                   "width":  536,
+                   "height":  577,
+                   "left":  1397,
+                   "top":  432,
                    "topmost":  true,
                    "designWidth":  520,
                    "designHeight":  560,
@@ -20,7 +20,7 @@
                                          "workWidth":  1920,
                                          "workHeight":  1032,
                                          "relativeX":  1,
-                                         "relativeY":  0.9246
+                                         "relativeY":  0.9495
                                      }
                },
     "background":  {
@@ -49,11 +49,11 @@
                     "cancelEditY":  192,
                     "backgroundX":  82,
                     "backgroundY":  192,
-                    "addX":  218,
-                    "addY":  379.7,
+                    "addX":  227.2,
+                    "addY":  411.7,
                     "opacityX":  178,
                     "opacityY":  8,
-                    "addSize":  84,
+                    "addSize":  62.3,
                     "toolbarBottom":  12.0
                 },
     "resize":  {

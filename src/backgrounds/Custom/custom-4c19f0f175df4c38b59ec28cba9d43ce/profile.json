@@ -1,0 +1,157 @@
+{
+    "id":  "custom-4c19f0f175df4c38b59ec28cba9d43ce",
+    "name":  "Deep Docks",
+    "protected":  false,
+    "background":  "backgrounds/Custom/custom-4c19f0f175df4c38b59ec28cba9d43ce/board.png",
+    "emptyBackground":  "backgrounds/Custom/custom-4c19f0f175df4c38b59ec28cba9d43ce/empty-board.png",
+    "accessory":  "backgrounds/Custom/custom-4c19f0f175df4c38b59ec28cba9d43ce/accessory.png",
+    "selectionCard":  "backgrounds/Custom/custom-4c19f0f175df4c38b59ec28cba9d43ce/selection-card.png",
+    "defaults":  {
+                     "addX":  218,
+                     "addY":  408,
+                     "addSize":  84,
+                     "area":  {
+                                  "type":  "polygon",
+                                  "borderVisible":  true,
+                                  "borderThickness":  2,
+                                  "borderColor":  "#D8FFFFFF",
+                                  "fillColor":  "#1600A8FF",
+                                  "taskSize":  48,
+                                  "padding":  8,
+                                  "points":  [
+                                                 {
+                                                     "x":  260,
+                                                     "y":  145
+                                                 },
+                                                 {
+                                                     "x":  333.5,
+                                                     "y":  168.9
+                                                 },
+                                                 {
+                                                     "x":  378.9,
+                                                     "y":  231.4
+                                                 },
+                                                 {
+                                                     "x":  378.9,
+                                                     "y":  308.6
+                                                 },
+                                                 {
+                                                     "x":  333.5,
+                                                     "y":  371.1
+                                                 },
+                                                 {
+                                                     "x":  260,
+                                                     "y":  395
+                                                 },
+                                                 {
+                                                     "x":  186.5,
+                                                     "y":  371.1
+                                                 },
+                                                 {
+                                                     "x":  141.1,
+                                                     "y":  308.6
+                                                 },
+                                                 {
+                                                     "x":  141.1,
+                                                     "y":  231.4
+                                                 },
+                                                 {
+                                                     "x":  186.5,
+                                                     "y":  168.9
+                                                 }
+                                             ]
+                              }
+                 },
+    "state":  {
+                  "addX":  227.2,
+                  "addY":  411.7,
+                  "addSize":  62.3,
+                  "area":  {
+                               "type":  "polygon",
+                               "borderVisible":  true,
+                               "borderThickness":  2,
+                               "borderColor":  "#D8FFFFFF",
+                               "fillColor":  "#1600A8FF",
+                               "taskSize":  48,
+                               "padding":  8,
+                               "points":  [
+                                              {
+                                                  "x":  255.1,
+                                                  "y":  132
+                                              },
+                                              {
+                                                  "x":  351.2,
+                                                  "y":  169.8
+                                              },
+                                              {
+                                                  "x":  399.8,
+                                                  "y":  224.2
+                                              },
+                                              {
+                                                  "x":  395.9,
+                                                  "y":  261.1
+                                              },
+                                              {
+                                                  "x":  426.9,
+                                                  "y":  299.9
+                                              },
+                                              {
+                                                  "x":  416.3,
+                                                  "y":  331.9
+                                              },
+                                              {
+                                                  "x":  382.3,
+                                                  "y":  338.7
+                                              },
+                                              {
+                                                  "x":  393.9,
+                                                  "y":  368.8
+                                              },
+                                              {
+                                                  "x":  341.5,
+                                                  "y":  391.1
+                                              },
+                                              {
+                                                  "x":  285.2,
+                                                  "y":  404.7
+                                              },
+                                              {
+                                                  "x":  233.8,
+                                                  "y":  406.7
+                                              },
+                                              {
+                                                  "x":  183.3,
+                                                  "y":  392.1
+                                              },
+                                              {
+                                                  "x":  135.8,
+                                                  "y":  369.8
+                                              },
+                                              {
+                                                  "x":  129,
+                                                  "y":  334.8
+                                              },
+                                              {
+                                                  "x":  99.9,
+                                                  "y":  327.1
+                                              },
+                                              {
+                                                  "x":  99.9,
+                                                  "y":  289.2
+                                              },
+                                              {
+                                                  "x":  121.2,
+                                                  "y":  261.1
+                                              },
+                                              {
+                                                  "x":  115.4,
+                                                  "y":  229
+                                              },
+                                              {
+                                                  "x":  170.7,
+                                                  "y":  163.1
+                                              }
+                                          ]
+                           }
+              }
+}

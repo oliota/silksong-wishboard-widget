@@ -1,0 +1,157 @@
+{
+    "id":  "custom-826154ff88774f01a111408132c61856",
+    "name":  "High Halls",
+    "protected":  false,
+    "background":  "backgrounds/Custom/custom-826154ff88774f01a111408132c61856/board.png",
+    "emptyBackground":  "backgrounds/Custom/custom-826154ff88774f01a111408132c61856/board.png",
+    "accessory":  "backgrounds/Custom/custom-826154ff88774f01a111408132c61856/accessory.png",
+    "selectionCard":  "backgrounds/Custom/custom-826154ff88774f01a111408132c61856/selection-card.png",
+    "defaults":  {
+                     "addX":  218,
+                     "addY":  408,
+                     "addSize":  84,
+                     "area":  {
+                                  "type":  "polygon",
+                                  "borderVisible":  true,
+                                  "borderThickness":  2,
+                                  "borderColor":  "#D8FFFFFF",
+                                  "fillColor":  "#1600A8FF",
+                                  "taskSize":  48,
+                                  "padding":  8,
+                                  "points":  [
+                                                 {
+                                                     "x":  260,
+                                                     "y":  145
+                                                 },
+                                                 {
+                                                     "x":  333.5,
+                                                     "y":  168.9
+                                                 },
+                                                 {
+                                                     "x":  378.9,
+                                                     "y":  231.4
+                                                 },
+                                                 {
+                                                     "x":  378.9,
+                                                     "y":  308.6
+                                                 },
+                                                 {
+                                                     "x":  333.5,
+                                                     "y":  371.1
+                                                 },
+                                                 {
+                                                     "x":  260,
+                                                     "y":  395
+                                                 },
+                                                 {
+                                                     "x":  186.5,
+                                                     "y":  371.1
+                                                 },
+                                                 {
+                                                     "x":  141.1,
+                                                     "y":  308.6
+                                                 },
+                                                 {
+                                                     "x":  141.1,
+                                                     "y":  231.4
+                                                 },
+                                                 {
+                                                     "x":  186.5,
+                                                     "y":  168.9
+                                                 }
+                                             ]
+                              }
+                 },
+    "state":  {
+                  "addX":  223.8,
+                  "addY":  0,
+                  "addSize":  79.1,
+                  "area":  {
+                               "type":  "polygon",
+                               "borderVisible":  true,
+                               "borderThickness":  2,
+                               "borderColor":  "#D8FFFFFF",
+                               "fillColor":  "#1600A8FF",
+                               "taskSize":  48,
+                               "padding":  8,
+                               "points":  [
+                                              {
+                                                  "x":  250.3,
+                                                  "y":  64.1
+                                              },
+                                              {
+                                                  "x":  281.4,
+                                                  "y":  62.1
+                                              },
+                                              {
+                                                  "x":  324.4,
+                                                  "y":  84.2
+                                              },
+                                              {
+                                                  "x":  381.4,
+                                                  "y":  133.8
+                                              },
+                                              {
+                                                  "x":  422.3,
+                                                  "y":  189.6
+                                              },
+                                              {
+                                                  "x":  438.4,
+                                                  "y":  283.7
+                                              },
+                                              {
+                                                  "x":  411.2,
+                                                  "y":  317.2
+                                              },
+                                              {
+                                                  "x":  362.8,
+                                                  "y":  309.7
+                                              },
+                                              {
+                                                  "x":  360.4,
+                                                  "y":  340.7
+                                              },
+                                              {
+                                                  "x":  308.3,
+                                                  "y":  363
+                                              },
+                                              {
+                                                  "x":  266.2,
+                                                  "y":  396.5
+                                              },
+                                              {
+                                                  "x":  232.7,
+                                                  "y":  369.2
+                                              },
+                                              {
+                                                  "x":  167.1,
+                                                  "y":  344.4
+                                              },
+                                              {
+                                                  "x":  169.6,
+                                                  "y":  311
+                                              },
+                                              {
+                                                  "x":  122.5,
+                                                  "y":  313.5
+                                              },
+                                              {
+                                                  "x":  94,
+                                                  "y":  271.3
+                                              },
+                                              {
+                                                  "x":  110.1,
+                                                  "y":  187.1
+                                              },
+                                              {
+                                                  "x":  146,
+                                                  "y":  133.8
+                                              },
+                                              {
+                                                  "x":  211.7,
+                                                  "y":  83
+                                              }
+                                          ]
+                           }
+              }
+}

@@ -1,7 +1,28 @@
 {
-  "profiles": [
-    { "id": "bonebotton", "file": "backgrounds/BoneBotton/profile.json" },
-    { "id": "bellhart", "file": "backgrounds/BellHart/profile.json" },
-    { "id": "songclave", "file": "backgrounds/SongClave/profile.json" }
-  ]
+    "profiles":  [
+                     {
+                         "id":  "bonebotton",
+                         "file":  "backgrounds/BoneBotton/profile.json"
+                     },
+                     {
+                         "id":  "bellhart",
+                         "file":  "backgrounds/BellHart/profile.json"
+                     },
+                     {
+                         "id":  "songclave",
+                         "file":  "backgrounds/SongClave/profile.json"
+                     },
+                     {
+                         "id":  "custom-826154ff88774f01a111408132c61856",
+                         "file":  "backgrounds/Custom/custom-826154ff88774f01a111408132c61856/profile.json"
+                     },
+                     {
+                         "id":  "custom-efcd548605954f57a0f237a61e733cc8",
+                         "file":  "backgrounds/Custom/custom-efcd548605954f57a0f237a61e733cc8/profile.json"
+                     },
+                     {
+                         "id":  "custom-4c19f0f175df4c38b59ec28cba9d43ce",
+                         "file":  "backgrounds/Custom/custom-4c19f0f175df4c38b59ec28cba9d43ce/profile.json"
+                     }
+                 ]
 }

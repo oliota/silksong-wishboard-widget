@@ -1,0 +1,125 @@
+{
+    "id":  "custom-efcd548605954f57a0f237a61e733cc8",
+    "name":  "Trobbio",
+    "protected":  false,
+    "background":  "backgrounds/Custom/custom-efcd548605954f57a0f237a61e733cc8/board.png",
+    "emptyBackground":  "backgrounds/Custom/custom-efcd548605954f57a0f237a61e733cc8/board.png",
+    "accessory":  "backgrounds/Custom/custom-efcd548605954f57a0f237a61e733cc8/accessory.png",
+    "selectionCard":  "backgrounds/Custom/custom-efcd548605954f57a0f237a61e733cc8/selection-card.png",
+    "defaults":  {
+                     "addX":  218,
+                     "addY":  408,
+                     "addSize":  404,
+                     "area":  {
+                                  "type":  "polygon",
+                                  "borderVisible":  true,
+                                  "borderThickness":  2,
+                                  "borderColor":  "#D8FFFFFF",
+                                  "fillColor":  "#1600A8FF",
+                                  "taskSize":  188,
+                                  "padding":  8,
+                                  "points":  [
+                                                 {
+                                                     "x":  260,
+                                                     "y":  145
+                                                 },
+                                                 {
+                                                     "x":  333.5,
+                                                     "y":  168.9
+                                                 },
+                                                 {
+                                                     "x":  378.9,
+                                                     "y":  231.4
+                                                 },
+                                                 {
+                                                     "x":  378.9,
+                                                     "y":  308.6
+                                                 },
+                                                 {
+                                                     "x":  333.5,
+                                                     "y":  371.1
+                                                 },
+                                                 {
+                                                     "x":  260,
+                                                     "y":  395
+                                                 },
+                                                 {
+                                                     "x":  186.5,
+                                                     "y":  371.1
+                                                 },
+                                                 {
+                                                     "x":  141.1,
+                                                     "y":  308.6
+                                                 },
+                                                 {
+                                                     "x":  141.1,
+                                                     "y":  231.4
+                                                 },
+                                                 {
+                                                     "x":  186.5,
+                                                     "y":  168.9
+                                                 }
+                                             ]
+                              }
+                 },
+    "state":  {
+                  "addX":  221.7,
+                  "addY":  89.3,
+                  "addSize":  84,
+                  "area":  {
+                               "type":  "polygon",
+                               "borderVisible":  true,
+                               "borderThickness":  2,
+                               "borderColor":  "#D8FFFFFF",
+                               "fillColor":  "#1600A8FF",
+                               "taskSize":  48,
+                               "padding":  8,
+                               "points":  [
+                                              {
+                                                  "x":  263.7,
+                                                  "y":  187.1
+                                              },
+                                              {
+                                                  "x":  333.5,
+                                                  "y":  168.9
+                                              },
+                                              {
+                                                  "x":  359.1,
+                                                  "y":  211.9
+                                              },
+                                              {
+                                                  "x":  348,
+                                                  "y":  302.3
+                                              },
+                                              {
+                                                  "x":  343,
+                                                  "y":  444.8
+                                              },
+                                              {
+                                                  "x":  297.2,
+                                                  "y":  488.1
+                                              },
+                                              {
+                                                  "x":  232.7,
+                                                  "y":  486.9
+                                              },
+                                              {
+                                                  "x":  172,
+                                                  "y":  458.4
+                                              },
+                                              {
+                                                  "x":  165.8,
+                                                  "y":  389
+                                              },
+                                              {
+                                                  "x":  172,
+                                                  "y":  209.4
+                                              },
+                                              {
+                                                  "x":  181.9,
+                                                  "y":  172.2
+                                              }
+                                          ]
+                           }
+              }
+}

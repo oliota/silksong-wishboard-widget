@@ -128,11 +128,11 @@ function New-WishBoardProfileCard($profile, [string]$title, [string]$cardBackgro
     $titleText.VerticalAlignment = 'Center'
     $titlePanel.Child = $titleText
     $previewFrame = New-Object System.Windows.Controls.Border
-    $previewFrame.Width = 150
-    $previewFrame.Height = 150
+    $previewFrame.Width = 105
+    $previewFrame.Height = 105
     $previewFrame.HorizontalAlignment = 'Right'
-    $previewFrame.VerticalAlignment = 'Bottom'
-    $previewFrame.Margin = '0,0,18,18'
+    $previewFrame.VerticalAlignment = 'Top'
+    $previewFrame.Margin = '0,62,14,0'
     $previewFrame.Padding = 5
     $previewFrame.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#D8000000')
     $previewFrame.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#CCFFFFFF')
@@ -142,12 +142,103 @@ function New-WishBoardProfileCard($profile, [string]$title, [string]$cardBackgro
     [System.Windows.Controls.Panel]::SetZIndex($previewFrame, 2)
     $previewFrame.Child = New-SettingsImage ([string]$profile.background) 'Uniform'
     $content.Children.Add($previewFrame) | Out-Null
+    if (-not (Test-BuiltInProfile ([string]$profile.id))) {
+        $deleteButton = New-RoundButton '' 30
+        $deleteButton.Tag = [string]$profile.id
+        $deleteButton.Width = 34
+        $deleteButton.Height = 34
+        $deleteButton.HorizontalAlignment = 'Left'
+        $deleteButton.VerticalAlignment = 'Top'
+        $deleteButton.Margin = '12,62,0,0'
+        $deleteButton.ToolTip = 'Delete board'
+        $deleteView = New-Object System.Windows.Controls.Viewbox
+        $deleteView.Width = 16
+        $deleteView.Height = 16
+        $deletePath = New-Object System.Windows.Shapes.Path
+        $deletePath.Stroke = [System.Windows.Media.Brushes]::White
+        $deletePath.StrokeThickness = 1.6
+        $deletePath.StrokeLineJoin = 'Round'
+        $deletePath.Data = [System.Windows.Media.Geometry]::Parse('M3,5 L15,5 M6,5 L6,16 L12,16 L12,5 M7,3 L11,3 L12,5 L6,5 Z M8,8 L8,13 M10,8 L10,13')
+        $deleteView.Child = $deletePath
+        $deleteButton.Content = $deleteView
+        [System.Windows.Controls.Panel]::SetZIndex($deleteButton, 4)
+        $deleteButton.Add_Click({
+            param($s, $e)
+            $e.Handled = $true
+            $answer = [System.Windows.MessageBox]::Show('Delete this custom board?', 'Delete Wish Board', [System.Windows.MessageBoxButton]::YesNo, [System.Windows.MessageBoxImage]::Warning)
+            if ($answer -ne [System.Windows.MessageBoxResult]::Yes) { return }
+            Remove-CustomProfile ([string]$s.Tag)
+            Close-EditSettingsWindow
+            Show-EditSettingsWindow
+        }.GetNewClosure())
+        $content.Children.Add($deleteButton) | Out-Null
+    }
     Add-DescriptionCorners $content
     $script:settingsProfileCards[[string]$profile.id] = [pscustomobject]@{ Outer = $outer; Frame = $frame }
     $button.Add_MouseEnter({ param($s, $e); if ([string]$s.Tag -ne [string]$script:editProfileId) { $outer.Background = New-SettingsHighlightBrush 54; $frame.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#AAFFFFFF') } }.GetNewClosure())
     $button.Add_MouseLeave({ Update-SettingsProfileSelection })
     $button.Add_Click({ param($s, $e); if (-not $script:editMode) { return }; $profileId = [string]$s.Tag; if ($profileId -eq [string]$script:editProfileId) { return }; Push-EditUndo; Set-Profile $profileId $true; Update-SettingsProfileSelection })
     $outer
+}
+
+function New-WishBoardAddCard {
+    $outer = New-Object System.Windows.Controls.Border
+    $outer.Margin = '10'
+    $outer.Padding = '12'
+    $outer.CornerRadius = 4
+    $button = New-Object System.Windows.Controls.Button
+    $button.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FF111117')
+    $button.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#55FFFFFF')
+    $button.BorderThickness = 1
+    $button.Cursor = [System.Windows.Input.Cursors]::Hand
+    $plus = New-Object System.Windows.Controls.TextBlock
+    $plus.Text = '+'
+    $plus.Foreground = [System.Windows.Media.Brushes]::White
+    $plus.FontSize = 72
+    $plus.FontWeight = 'Light'
+    $plus.HorizontalAlignment = 'Center'
+    $plus.VerticalAlignment = 'Center'
+    $button.Content = $plus
+    $button.Add_Click({ if ((Show-CreateCustomProfileWindow) -eq $true) { Close-EditSettingsWindow; Show-EditSettingsWindow } })
+    $outer.Child = $button
+    $outer
+}
+
+function New-WishBoardProfileGrid {
+    $grid = New-Object System.Windows.Controls.Grid
+    $grid.Margin = '10'
+    for ($column = 0; $column -lt 3; $column++) {
+        $definition = New-Object System.Windows.Controls.ColumnDefinition
+        $definition.Width = New-Object System.Windows.GridLength(1, [System.Windows.GridUnitType]::Star)
+        $grid.ColumnDefinitions.Add($definition) | Out-Null
+    }
+    $registry = Read-ProfileRegistry
+    $profiles = @($registry.profiles)
+    $items = @($profiles) + @($null)
+    $rowCount = [Math]::Ceiling($items.Count / 3.0)
+    for ($row = 0; $row -lt $rowCount; $row++) {
+        $definition = New-Object System.Windows.Controls.RowDefinition
+        $definition.Height = New-Object System.Windows.GridLength(290)
+        $grid.RowDefinitions.Add($definition) | Out-Null
+    }
+    for ($index = 0; $index -lt $items.Count; $index++) {
+        $profile = $items[$index]
+        if ($null -eq $profile) {
+            $profileCard = New-WishBoardAddCard
+        } else {
+            $cardBackground = if (-not [string]::IsNullOrWhiteSpace([string]$profile.selectionCard)) { [string]$profile.selectionCard } else { 'backgrounds/settings/' + [string]$profile.id + '-card.png' }
+            $profileTitle = switch ([string]$profile.id) { 'bonebotton' { 'Bone Botton' } 'bellhart' { 'Bellhart' } 'songclave' { 'Songclave' } default { [string]$profile.name } }
+            $profileCard = New-WishBoardProfileCard $profile $profileTitle $cardBackground
+        }
+        [System.Windows.Controls.Grid]::SetColumn($profileCard, ($index % 3))
+        [System.Windows.Controls.Grid]::SetRow($profileCard, [Math]::Floor($index / 3))
+        $grid.Children.Add($profileCard) | Out-Null
+    }
+    $scroll = New-Object System.Windows.Controls.ScrollViewer
+    $scroll.VerticalScrollBarVisibility = 'Auto'
+    $scroll.HorizontalScrollBarVisibility = 'Disabled'
+    $scroll.Content = $grid
+    $scroll
 }
 
 function Close-EditSettingsWindow {
@@ -276,4 +367,3 @@ function Render-IconCatalogEditor($panel) {
     }
     Attach-GridPanelToIconSettings $panel
 }
-
