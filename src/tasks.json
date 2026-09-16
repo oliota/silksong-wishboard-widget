@@ -1,17 +1,5 @@
 {
     "tasks":  [
-                  {
-                      "id":  "task-b23c59b922db4bfdb8143c5e7a950f3a",
-                      "title":  "aa",
-                      "description":  "aa",
-                      "icon":  "icon-04",
-                      "isNew":  true,
-                      "createdAt":  "2026-09-04T16:05:26.0564050+01:00",
-                      "badge":  "backgrounds/badges/bonebottom_quest_board_badges_grey_0002_4.png",
-                      "label":  "backgrounds/badges/label/bonebottom_quest_board_badges_text_0004_Layer-11.png",
-                      "badgeColor":  "#FFD3ED26",
-                      "x":  270.8,
-                      "y":  260.5
-                  }
+
               ]
 }

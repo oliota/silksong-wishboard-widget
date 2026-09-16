@@ -1,5 +1,5 @@
 function Read-JsonFile([string]$path) {
-    Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    [System.IO.File]::ReadAllText($path, [System.Text.UTF8Encoding]::new($false)) | ConvertFrom-Json
 }
 
 function Read-Tasks {

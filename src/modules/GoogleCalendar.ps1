@@ -457,33 +457,116 @@ function Update-GoogleCalendarAccessToken($calendar) {
 
 function Sync-GoogleCalendar([bool]$allowDuringEdit = $false, [bool]$useCurrentAccessToken = $false) {
     if ($script:calendarSyncActive -or ($script:editMode -and -not $allowDuringEdit)) { return }
+
     $calendar = Get-GoogleCalendarConfig
     if ($null -eq $calendar) { return }
+
     $script:calendarSyncActive = $true
+
     try {
-        $token = if ($useCurrentAccessToken) { [string]$calendar.accessToken } else { Update-GoogleCalendarAccessToken $calendar }
+        $token = if ($useCurrentAccessToken) {
+            [string]$calendar.accessToken
+        } else {
+            Update-GoogleCalendarAccessToken $calendar
+        }
+
         $now = [DateTimeOffset]::Now
         $end = [DateTimeOffset]::new($now.Year, $now.Month, $now.Day, 23, 59, 59, $now.Offset)
-        $query = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin=' + [Uri]::EscapeDataString($now.ToString('o')) + '&timeMax=' + [Uri]::EscapeDataString($end.ToString('o'))
-        $response = Invoke-RestMethod -Method Get -Uri $query -Headers @{ Authorization = "Bearer $token" }
-        $events = @($response.items | Where-Object { [string]$_.status -ne 'cancelled' })
+
+        $query = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin=' +
+            [Uri]::EscapeDataString($now.ToString('o')) +
+            '&timeMax=' +
+            [Uri]::EscapeDataString($end.ToString('o'))
+
+        $webResponse = Invoke-WebRequest `
+            -Method Get `
+            -Uri $query `
+            -Headers @{ Authorization = "Bearer $token" } `
+            -UseBasicParsing
+
+        $stream = $webResponse.RawContentStream
+        $stream.Position = 0
+        $reader = New-Object System.IO.StreamReader(
+            $stream,
+            [System.Text.UTF8Encoding]::new($false),
+            $true
+        )
+
+        try {
+            $json = $reader.ReadToEnd()
+        } finally {
+            $reader.Dispose()
+        }
+
+        $response = $json | ConvertFrom-Json
+
+        $events = @(
+            $response.items | Where-Object {
+                [string]$_.status -ne 'cancelled'
+            }
+        )
+
         $script:lastGoogleCalendarEvents = $events
-        $activeIds = @($events | ForEach-Object { [string]$_.id })
-        $script:tasks = @($script:tasks | Where-Object { [string]$_.source -ne 'googleCalendar' -or $activeIds -contains [string]$_.externalId })
+
+        $activeIds = @(
+            $events | ForEach-Object {
+                [string]$_.id
+            }
+        )
+
+        $script:tasks = @(
+            $script:tasks | Where-Object {
+                [string]$_.source -ne 'googleCalendar' -or
+                $activeIds -contains [string]$_.externalId
+            }
+        )
+
         foreach ($event in $events) {
-            $existing = @($script:tasks | Where-Object { [string]$_.source -eq 'googleCalendar' -and [string]$_.externalId -eq [string]$event.id } | Select-Object -First 1)
-            $startText = if ($null -ne $event.start.dateTime) { ([DateTimeOffset]::Parse([string]$event.start.dateTime)).ToLocalTime().ToString('HH:mm') } else { 'All day' }
-            $endText = if ($null -ne $event.end.dateTime) { ([DateTimeOffset]::Parse([string]$event.end.dateTime)).ToLocalTime().ToString('HH:mm') } else { '' }
-            $description = @($startText + $(if ($endText) { " - $endText" } else { '' }), [string]$event.location, [string]$event.description) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+            $existing = @(
+                $script:tasks | Where-Object {
+                    [string]$_.source -eq 'googleCalendar' -and
+                    [string]$_.externalId -eq [string]$event.id
+                } | Select-Object -First 1
+            )
+
+            $startText = if ($null -ne $event.start.dateTime) {
+                ([DateTimeOffset]::Parse([string]$event.start.dateTime)).ToLocalTime().ToString('HH:mm')
+            } else {
+                'All day'
+            }
+
+            $endText = if ($null -ne $event.end.dateTime) {
+                ([DateTimeOffset]::Parse([string]$event.end.dateTime)).ToLocalTime().ToString('HH:mm')
+            } else {
+                ''
+            }
+
+            $description = @(
+                $startText + $(if ($endText) { " - $endText" } else { '' })
+                [string]$event.location
+                [string]$event.description
+            ) | Where-Object {
+                -not [string]::IsNullOrWhiteSpace($_)
+            }
+
             if ($existing.Count -gt 0) {
-                $existing[0].title = if ([string]::IsNullOrWhiteSpace([string]$event.summary)) { 'Google Calendar event' } else { [string]$event.summary }
+                $existing[0].title = if ([string]::IsNullOrWhiteSpace([string]$event.summary)) {
+                    'Google Calendar event'
+                } else {
+                    [string]$event.summary
+                }
+
                 $existing[0].description = $description -join [Environment]::NewLine
                 continue
             }
         }
+
         Save-Tasks
         Render-Tasks
-        if ($events.Count -gt 0) { Show-CalendarSummons $events }
+
+        if ($events.Count -gt 0) {
+            Show-CalendarSummons $events
+        }
     } finally {
         $script:calendarSyncActive = $false
     }
